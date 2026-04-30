@@ -1,0 +1,42 @@
+on:
+  push:
+    branches:
+      - main  # Or 'master', depending on your default branch name
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # Updated to v5 (Supports Node 24)
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Setup Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # Since there is no build step, we just upload the root directory
+      # Updated to v4 (Supports Node 24)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: .
+          retention-days: 1
+
+      # Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
