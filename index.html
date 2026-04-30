@@ -23,7 +23,7 @@ error handling.
 `google.accounts.oauth2` flow is the new standard.
     *   **Microsoft Auth:** The PKCE flow requires a `code_verifier` stored in session storage.
 The redirect URI must match exactly. The user provided
-`https://ghaziomairi93.github.io/MyDashboard/`. If they are testing locally (`file://` or
+`https://ghaziomairi93.github.io/houdini-tools/`. If they are testing locally (`file://` or
 `localhost`), this redirect won't work. *Self-correction:* I cannot change their redirect URI in
 the Azure portal. I must assume they are hosting it on GitHub Pages as per the URI provided.
 However, for local testing, I should perhaps add a note or handle the `file://` protocol
@@ -68,7 +68,7 @@ CSS definition.
 first, but it might be slow. I'll keep the implementation as is but add a "Loading..." state.
 
 7.  **Refining Microsoft Auth:**
-    *   The redirect URI `https://ghaziomairi93.github.io/MyDashboard/` implies the file must be
+    *   The redirect URI `https://ghaziomairi93.github.io/houdini-tools/` implies the file must be
 named `index.html` and hosted there.
     *   I need to make sure the `msTokenExchange` function runs *before* the rest of the UI
 tries to use the token.
@@ -733,7 +733,7 @@ style="margin-bottom:15px; height:150px;"></textarea>
         googleClientId:
 '623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.com',
         msClientId: '1155afdf-d585-48cc-af89-b973843ce21a',
-        msRedirect: 'https://ghaziomairi93.github.io/MyDashboard/',
+        msRedirect: 'https://ghaziomairi93.github.io/houdini-tools/',
         web3Key: '53bad208-02b2-40b6-974b-98f8b68d0439'
     };
 
