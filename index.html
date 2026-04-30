@@ -1,276 +1,3290 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big Minds PRO</title>
+  <meta charset="UTF-8">
+  <title>Big Minds Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&family=Syne:wght@800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #07070f;
+      --card-bg: rgba(255,255,255,0.05);
+      --card-border: rgba(255,255,255,0.08);
+      --accent-cyan: #35e0ff;
+      --accent-green: #00e060;
+      --accent-purple: #a855ff;
+      --accent-teal: #2dd4bf;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --glass-blur: 20px;
+      --radius-lg: 18px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 18px 45px rgba(0,0,0,0.65);
+      --seg-on: #00e060;
+      --seg-off: #022814;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #111827 0, #020617 40%, #000 100%);
+      color: var(--text-main);
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100%;
+    }
+    body {
+      background-color: var(--bg-main);
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(56,189,248,0.18), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(52,211,153,0.18), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(168,85,247,0.18), transparent 55%);
+      background-attachment: fixed;
+    }
+    .weather-theme-morning {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(251,191,36,0.22), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(56,189,248,0.22), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(52,211,153,0.18), transparent 55%);
+    }
+    .weather-theme-day {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(56,189,248,0.25), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(59,130,246,0.25), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(52,211,153,0.18), transparent 55%);
+    }
+    .weather-theme-evening {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(249,115,22,0.25), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(147,51,234,0.25), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(14,165,233,0.18), transparent 55%);
+    }
+    .weather-theme-night {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(30,64,175,0.35), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(15,23,42,0.9), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(76,29,149,0.35), transparent 55%);
+    }
+    .weather-theme-rain {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(59,130,246,0.35), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(15,23,42,0.95), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(37,99,235,0.35), transparent 55%);
+    }
+    .weather-theme-clouds {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(148,163,184,0.35), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(30,64,175,0.35), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(15,23,42,0.95), transparent 55%);
+    }
+    .weather-theme-clear {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(251,191,36,0.35), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(56,189,248,0.35), transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(52,211,153,0.25), transparent 55%);
+    }
 
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans&family=Space+Mono&display=swap" rel="stylesheet">
+    .app-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px 16px 80px 16px;
+    }
+    header.app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 4px 2px;
+    }
+    .brand-title {
+      font-family: "Syne", system-ui, sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .version-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.7);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .version-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent-green);
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
+      animation: pulse-dot 1.6s infinite;
+    }
+    @keyframes pulse-dot {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
 
-<style>
-body{margin:0;background:#07070f;color:#fff;font-family:'DM Sans'}
-.container{max-width:420px;margin:auto;padding:12px}
-.card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border-radius:18px;padding:14px;margin-bottom:10px}
-.title{font-family:'Syne';color:#00e5ff}
-.clock{font-family:'Space Mono';font-size:32px;color:#00e060;text-align:center}
-button{background:#00e5ff;border:none;padding:6px 10px;border-radius:10px}
-input{width:100%;margin-top:5px;padding:8px;border-radius:10px;border:none;background:#111;color:#fff}
-.green{color:#00ff88}
-.red{color:#ff4d4d}
-.small{font-size:12px;opacity:.7}
-</style>
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      padding: 14px 14px 12px 14px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-title span.accent {
+      color: var(--accent-cyan);
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .btn {
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.85);
+      color: var(--text-main);
+      font-size: 11px;
+      padding: 5px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      outline: none;
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: rgba(148,163,184,0.4);
+    }
+    .btn-primary {
+      border-color: var(--accent-cyan);
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.35), rgba(15,23,42,0.95));
+    }
+    .btn-danger {
+      border-color: rgba(248,113,113,0.8);
+      background: radial-gradient(circle at 0 0, rgba(248,113,113,0.35), rgba(15,23,42,0.95));
+      color: #fee2e2;
+    }
+    .btn-sm {
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+    .btn-pill-group {
+      display: inline-flex;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.6);
+      overflow: hidden;
+    }
+    .btn-pill-group button {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .btn-pill-group button.active {
+      background: rgba(15,23,42,0.9);
+      color: var(--accent-cyan);
+    }
+
+    .greeting-main {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .greeting-line {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .greeting-line strong {
+      color: var(--text-main);
+    }
+    .greeting-big {
+      font-family: "Syne", system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 26px;
+      letter-spacing: 0.04em;
+    }
+    .greeting-big span {
+      color: var(--accent-cyan);
+    }
+    .greeting-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .greeting-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill-soft {
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(148,163,184,0.5);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .row-2col {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 10px;
+    }
+    .weather-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .weather-temp-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .weather-temp {
+      font-family: "Space Mono", monospace;
+      font-size: 30px;
+      font-weight: 700;
+    }
+    .weather-temp span.unit {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .weather-cond {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .weather-city {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .weather-icon {
+      font-size: 20px;
+    }
+
+    .clock-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .clock-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .clock-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 4px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 0 0, rgba(22,163,74,0.35), rgba(15,23,42,0.95));
+      border: 1px solid rgba(34,197,94,0.5);
+    }
+    .digit {
+      width: 18px;
+      height: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 1px;
+    }
+    .seg {
+      background: var(--seg-off);
+      border-radius: 2px;
+    }
+    .seg-on {
+      background: var(--seg-on);
+      box-shadow: 0 0 6px rgba(34,197,94,0.9);
+    }
+    .colon {
+      width: 6px;
+      height: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .colon-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--seg-on);
+      opacity: 1;
+      transition: opacity 0.15s linear;
+    }
+    .colon-off .colon-dot {
+      opacity: 0.15;
+    }
+
+    .quote-main {
+      font-style: italic;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .quote-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-card {
+      border-radius: 14px;
+      padding: 10px 10px 8px 10px;
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.18), rgba(15,23,42,0.95));
+      border: 1px solid rgba(148,163,184,0.6);
+      cursor: pointer;
+    }
+    .stat-card:nth-child(2) {
+      background: radial-gradient(circle at 0 0, rgba(52,211,153,0.18), rgba(15,23,42,0.95));
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: "Space Mono", monospace;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .tasks-summary-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .tasks-summary-number {
+      font-family: "Space Mono", monospace;
+      font-size: 32px;
+      color: var(--accent-green);
+    }
+    .tasks-summary-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .news-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fresh-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-green);
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
+      animation: pulse-dot 1.6s infinite;
+    }
+    .fresh-dot.offline {
+      background: #4b5563;
+      box-shadow: none;
+      animation: none;
+    }
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .news-item {
+      font-size: 12px;
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(31,41,55,0.9);
+    }
+    .news-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    .news-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .tag-auto { background: rgba(56,189,248,0.15); color: #7dd3fc; }
+    .tag-me { background: rgba(248,113,113,0.15); color: #fecaca; }
+    .tag-mv { background: rgba(52,211,153,0.15); color: #bbf7d0; }
+    .tag-ms { background: rgba(234,179,8,0.15); color: #facc15; }
+    .tag-tech { background: rgba(168,85,247,0.15); color: #e9d5ff; }
+    .news-date {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .prayer-list {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .prayer-item {
+      font-size: 10px;
+      padding: 6px 4px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      text-align: center;
+    }
+    .prayer-name {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .prayer-time {
+      font-family: "Space Mono", monospace;
+      font-size: 11px;
+    }
+    .prayer-next {
+      border-color: var(--accent-teal);
+      box-shadow: 0 0 12px rgba(45,212,191,0.5);
+    }
+
+    .pill-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+    }
+    .pill-day {
+      min-width: 52px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      font-size: 11px;
+      text-align: center;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .pill-day span {
+      display: block;
+    }
+    .pill-day .dow {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .pill-day .dom {
+      font-family: "Space Mono", monospace;
+      font-size: 14px;
+    }
+    .pill-day.active {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(56,189,248,0.5);
+    }
+
+    .calendar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .calendar-event {
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .calendar-event-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .calendar-event-title {
+      font-size: 12px;
+    }
+    .calendar-event-time {
+      color: var(--text-muted);
+    }
+    .calendar-event-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+    }
+    .icon-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px;
+    }
+
+    .mail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .mail-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 0 0, rgba(56,189,248,0.4), rgba(15,23,42,0.95));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .mail-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .mail-sender {
+      font-size: 12px;
+    }
+    .mail-subject {
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mail-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .mail-time {
+      color: var(--text-muted);
+    }
+    .mail-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(248,113,113,0.9);
+    }
+
+    .row-2col-tight {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 10px;
+    }
+    .price-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .price-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      font-size: 11px;
+    }
+    .price-name {
+      font-size: 12px;
+    }
+    .price-value {
+      font-family: "Space Mono", monospace;
+      font-size: 13px;
+    }
+    .offline-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .countdown-main {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .countdown-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .countdown-layout {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .cd-box {
+      min-width: 60px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      text-align: center;
+      font-size: 11px;
+    }
+    .cd-box .value {
+      display: block;
+      font-family: "Space Mono", monospace;
+      font-size: 16px;
+    }
+    .cd-box .label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .cd-inline {
+      font-family: "Space Mono", monospace;
+      font-size: 18px;
+    }
+    .cd-inputs {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr 0.9fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-main);
+      font-size: 11px;
+      padding: 6px 8px;
+      outline: none;
+    }
+    .input::placeholder {
+      color: #6b7280;
+    }
+
+    .mini-cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .mini-cal-month {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .mini-cal-nav {
+      display: flex;
+      gap: 4px;
+    }
+    .mini-cal-nav button {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0,1fr));
+      gap: 4px;
+      font-size: 10px;
+    }
+    .mini-cal-dow {
+      text-align: center;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .mini-cal-day {
+      text-align: center;
+      padding: 5px 0;
+      border-radius: 999px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .mini-cal-day.other {
+      color: #4b5563;
+    }
+    .mini-cal-day.today {
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      box-shadow: 0 0 10px rgba(168,85,247,0.6);
+    }
+    .mini-cal-day.selected {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(56,189,248,0.6);
+    }
+
+    .reminders-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .reminders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .rem-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      font-size: 11px;
+    }
+    .rem-checkbox {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(148,163,184,0.8);
+      background: rgba(15,23,42,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .rem-title {
+      font-size: 12px;
+    }
+    .rem-title.done {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    .rem-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .bottom-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 8px 16px 14px 16px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.0));
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .bottom-bar-inner {
+      pointer-events: auto;
+      max-width: 480px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 6px;
+    }
+    .bottom-btn {
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.95);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 6px 4px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .bottom-btn-strong {
+      border-color: rgba(248,113,113,0.9);
+      color: #fecaca;
+      background: radial-gradient(circle at 0 0, rgba(248,113,113,0.35), rgba(15,23,42,0.95));
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      display: none;
+      z-index: 40;
+      padding: 18px 16px 24px 16px;
+    }
+    .overlay.visible {
+      display: block;
+    }
+    .overlay-inner {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .overlay-title {
+      font-family: "Syne", system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: 0.06em;
+    }
+    .overlay-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .overlay-body {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .location-search-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.8);
+      background: rgba(15,23,42,0.95);
+      color: var(--text-main);
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      margin-bottom: 10px;
+    }
+    .location-result {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(31,41,55,0.9);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .location-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .location-name {
+      font-size: 15px;
+    }
+    .location-country {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .location-pin {
+      font-size: 18px;
+    }
+
+    .guide-content {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .guide-section-title {
+      font-size: 13px;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .support-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .support-form label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .support-form textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal.visible {
+      display: flex;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 18px;
+      background: rgba(15,23,42,0.98);
+      border: 1px solid rgba(55,65,81,0.9);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 14px 12px 14px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .modal-body {
+      font-size: 12px;
+      color: var(--text-muted);
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .modal-footer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    @media (min-width: 520px) {
+      body {
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      .app-shell {
+        border-radius: 24px;
+        border: 1px solid rgba(148,163,184,0.4);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,0.95), rgba(2,6,23,0.98));
+      }
+      .bottom-bar {
+        padding-bottom: 18px;
+      }
+    }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-
 <body>
-<div class="container">
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-title">BIG MINDS DASHBOARD</div>
+      <button class="version-pill" id="btnVersion">
+        <span class="version-dot"></span>
+        <span id="versionLabel">v0.1.0</span>
+      </button>
+    </header>
 
-<div class="card">
-<div class="title">Big Minds</div>
-<div id="greet"></div>
-<button id="locBtn">Set Location</button>
-</div>
+    <!-- Greeting -->
+    <section class="card" id="cardGreeting">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">\u2022 Greeting</span>
+        </div>
+        <button class="btn btn-sm" id="btnGreetingLocation">
+          <span id="greetingLocLabel">Set location</span>
+        </button>
+      </div>
+      <div class="greeting-main">
+        <div class="greeting-line" id="greetingLine">Good day, <strong>Big Mind</strong></div>
+        <div class="greeting-big">Big <span>Minds</span></div>
+        <div class="greeting-meta">
+          <div class="greeting-meta-left">
+            <div class="pill-soft" id="greetingDate">--</div>
+            <div class="pill-soft" id="greetingTz">Timezone: --</div>
+          </div>
+          <button class="btn btn-sm btn-ghost" id="btnGreetingChangeLoc">Change location</button>
+        </div>
+      </div>
+    </section>
 
-<div class="card"><div id="clock" class="clock"></div></div>
+    <!-- Weather + Clock -->
+    <section class="card" id="cardWeatherClock">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Weather</span> &amp; Clock
+        </div>
+        <div class="btn-pill-group" id="unitToggle">
+          <button data-unit="C" class="active">\u00b0C</button>
+          <button data-unit="F">\u00b0F</button>
+        </div>
+      </div>
+      <div class="row-2col">
+        <div class="weather-main" id="weatherCard">
+          <div class="weather-temp-row">
+            <div class="weather-temp" id="weatherTemp">--<span class="unit">\u00b0C</span></div>
+            <div class="weather-icon" id="weatherIcon">--</div>
+          </div>
+          <div class="weather-cond" id="weatherCond">Waiting for location\u2026</div>
+          <div class="weather-city" id="weatherCity">--</div>
+        </div>
+        <div class="clock-wrapper">
+          <div class="clock-label">
+            <span>Local time</span>
+            <span id="clockTzLabel">--</span>
+          </div>
+          <div class="clock-display" id="clockDisplay">
+            <!-- digits injected by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
 
-<div class="card">
-<div id="weather"></div>
-<button id="unitBtn">Toggle</button>
-</div>
+    <!-- Quote of the Day -->
+    <section class="card" id="cardQuote">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Quote</span> of the Day
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnQuoteRefresh">New</button>
+      </div>
+      <div class="quote-main" id="quoteText">Loading quote\u2026</div>
+      <div class="quote-meta">
+        <span id="quoteMeta">--</span>
+        <span id="quoteIndex">1 / 15</span>
+      </div>
+    </section>
 
-<div class="card"><div id="quote"></div><button id="newQ">New</button></div>
+    <!-- Stats row -->
+    <section class="card" id="cardStats">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Today</span> Stats
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card" id="statGmail">
+          <div class="stat-label">Unread Gmail</div>
+          <div class="stat-value" id="statGmailCount">0</div>
+        </div>
+        <div class="stat-card" id="statGCal">
+          <div class="stat-label">Events Today</div>
+          <div class="stat-value" id="statGCalCount">0</div>
+        </div>
+      </div>
+    </section>
 
-<div class="card"><h3>Crypto</h3><div id="crypto"></div></div>
+    <!-- Tasks summary -->
+    <section class="card" id="cardTasksSummary">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Tasks</span> Today
+        </div>
+        <div class="card-subtitle" id="tasksSummaryDate">--</div>
+      </div>
+      <div class="tasks-summary-main">
+        <div class="tasks-summary-number" id="tasksSummaryNumber">0</div>
+        <div class="tasks-summary-text">
+          Uncompleted reminders for the selected day.<br>
+          Tap to jump to reminders.
+        </div>
+      </div>
+    </section>
 
-<div class="card"><h3>Forex</h3><div id="fx"></div></div>
+    <!-- News -->
+    <section class="card" id="cardNews">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">News</span> Headlines
+        </div>
+        <div class="news-header-right">
+          <div class="fresh-dot" id="newsFreshDot"></div>
+          <button class="btn btn-sm btn-ghost" id="btnNewsRefresh">Refresh</button>
+        </div>
+      </div>
+      <div class="news-list" id="newsList">
+        <!-- news items -->
+      </div>
+    </section>
 
-<div class="card"><h3>News</h3><div id="news"></div></div>
+    <!-- Prayer Times -->
+    <section class="card" id="cardPrayer">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Prayer</span> Times
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnPrayerChangeLoc">Change location</button>
+      </div>
+      <div class="card-subtitle" id="prayerLocationLabel">Location: --</div>
+      <div class="prayer-list" id="prayerList">
+        <!-- prayer items -->
+      </div>
+    </section>
 
-<div class="card"><h3>Prayer</h3><div id="prayer"></div></div>
+    <!-- Google Calendar -->
+    <section class="card" id="cardGCal">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Google</span> Calendar
+        </div>
+        <div>
+          <button class="btn btn-sm btn-ghost" id="btnGCalConnect">Connect</button>
+          <button class="btn btn-sm btn-primary" id="btnGCalAdd">+ Add</button>
+        </div>
+      </div>
+      <div class="pill-bar" id="gcalPillBar"></div>
+      <div class="calendar-list" id="gcalList"></div>
+    </section>
 
-<div class="card">
-<h3>Tasks</h3>
-<input id="taskInput"><button id="addTask">+</button>
-<div id="tasks"></div>
-</div>
+    <!-- Gmail -->
+    <section class="card" id="cardGmail">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Gmail</span> Unread
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnGmailConnect">Connect</button>
+      </div>
+      <div class="mail-list" id="gmailList"></div>
+    </section>
 
-<div class="card">
-<h3>Countdown</h3>
-<input id="cdName"><input type="date" id="cdDate">
-<button id="saveCd">Save</button>
-<div id="cd"></div>
-</div>
+    <!-- Outlook Calendar -->
+    <section class="card" id="cardOutlookCal">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Outlook</span> Calendar
+        </div>
+        <div>
+          <button class="btn btn-sm btn-ghost" id="btnMsConnect">Connect</button>
+          <button class="btn btn-sm btn-primary" id="btnMsCalAdd">+ Add</button>
+        </div>
+      </div>
+      <div class="pill-bar" id="msCalPillBar"></div>
+      <div class="calendar-list" id="msCalList"></div>
+    </section>
 
-<div class="card">
-<h3>Gmail</h3>
-<button id="gLogin">Login</button>
-<div id="gmail"></div>
-</div>
+    <!-- Outlook Mail -->
+    <section class="card" id="cardOutlookMail">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Outlook</span> Mail
+        </div>
+      </div>
+      <div class="mail-list" id="msMailList"></div>
+    </section>
 
-<div class="card">
-<h3>Outlook</h3>
-<button id="mLogin">Login</button>
-<div id="outlook"></div>
-</div>
+    <!-- Crypto + Forex -->
+    <section class="card" id="cardMarkets">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Markets</span> Crypto &amp; FX
+        </div>
+        <div class="news-header-right">
+          <div class="fresh-dot" id="cryptoFreshDot"></div>
+          <button class="btn btn-sm btn-ghost" id="btnCryptoRefresh">Refresh</button>
+        </div>
+      </div>
+      <div class="row-2col-tight">
+        <div>
+          <div class="card-subtitle">Crypto</div>
+          <div class="price-list" id="cryptoList"></div>
+          <div class="offline-label" id="cryptoStatus">Offline state: --</div>
+        </div>
+        <div>
+          <div class="card-subtitle">Forex &amp; Metals</div>
+          <div class="price-list" id="forexList"></div>
+          <div class="offline-label" id="forexStatus">Offline state: --</div>
+        </div>
+      </div>
+    </section>
 
-</div>
+    <!-- Countdown -->
+    <section class="card" id="cardCountdown">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="accent">Countdown</span> Timer
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnCdClear">Clear</button>
+      </div>
+      <div class="countdown-main">
+        <div class="countdown-name" id="cdNameLabel">No countdown set</div>
+        <div class="countdown-layout" id="cdLayout">
+          <!-- dynamic -->
+        </div>
+        <div class="cd-inputs">
+          <input class="input" id="cdNameInput" placeholder="Name (e.g. Launch)">
+          <input class="input" id="cdDateInput" type="date">
+          <input class="input" id="cdTimeInput" type="time">
+        </div>
+        <div>
+          <button class="btn btn-sm btn-primary" id="btnCdSave">Save countdown</button>
+        </div>
+      </div>
+    </section>
 
-<script>
-(function(){
-'use strict';
+    <!-- Mini Calendar -->
+    <section class="card" id="cardMiniCal">
+      <div class="mini-cal-header">
+        <div class="mini-cal-month" id="miniCalMonth">--</div>
+        <div class="mini-cal-nav">
+          <button id="btnMiniPrev">\u2039</button>
+          <button id="btnMiniNext">\u203a</button>
+        </div>
+      </div>
+      <div class="mini-cal-grid" id="miniCalGrid">
+        <!-- days -->
+      </div>
+    </section>
 
-/* UTIL */
-function pad2(n){var s=String(Math.floor(n));return s.length<2?'0'+s:s}
+    <!-- Reminders -->
+    <section class="card" id="cardReminders">
+      <div class="reminders-header-row">
+        <div>
+          <div class="card-title">
+            <span class="accent">Reminders</span>
+          </div>
+          <div class="card-subtitle" id="remindersDateLabel">--</div>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-primary" id="btnRemAdd">+ Add</button>
+          <button class="btn btn-sm btn-ghost" id="btnRemClearDone">Clear done</button>
+        </div>
+      </div>
+      <div class="pill-bar" id="remPillBar"></div>
+      <div class="reminders-list" id="remList"></div>
+    </section>
+  </div>
 
-/* CLOCK */
-function clk(){
-var d=new Date();
-document.getElementById('clock').innerHTML=
-pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
-requestAnimationFrame(clk);
-}
-clk();
+  <!-- Location Picker Overlay -->
+  <div class="overlay" id="overlayLocation">
+    <div class="overlay-inner">
+      <div class="overlay-header">
+        <div>
+          <div class="overlay-title">Location</div>
+          <div class="overlay-subtitle">Search for a city to drive weather, time, prayers and calendars.</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnLocationClose">Close</button>
+      </div>
+      <input class="location-search-input" id="locationSearch" placeholder="Search city">
+      <div class="overlay-body" id="locationResults">
+        <!-- results -->
+      </div>
+    </div>
+  </div>
 
-/* GREET */
-function greet(){
-var h=new Date().getHours(),g='Night';
-if(h>5&&h<12)g='Morning';else if(h<17)g='Afternoon';else if(h<21)g='Evening';
-document.getElementById('greet').innerHTML='Good '+g;
-}
-greet();
+  <!-- Guide Overlay -->
+  <div class="overlay" id="overlayGuide">
+    <div class="overlay-inner">
+      <div class="overlay-header">
+        <div>
+          <div class="overlay-title">Guide</div>
+          <div class="overlay-subtitle">How this dashboard is wired together.</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnGuideClose">Close</button>
+      </div>
+      <div class="overlay-body">
+        <div class="guide-content">
+          <div>
+            <div class="guide-section-title">Location</div>
+            <div>Set a single location; it powers weather, greeting, prayer times, and timezone-aware clocks and calendars.</div>
+          </div>
+          <div>
+            <div class="guide-section-title">Calendars &amp; Mail</div>
+            <div>Connect Google and Microsoft once. Tokens are cached locally only (no server). You can add and delete events inline.</div>
+          </div>
+          <div>
+            <div class="guide-section-title">Tasks &amp; Reminders</div>
+            <div>Reminders are stored in your browser under <code>bmd_tasks</code>. The mini calendar and pill bars keep everything in sync.</div>
+          </div>
+          <div>
+            <div class="guide-section-title">Markets</div>
+            <div>Crypto and FX/metals are manual refresh. When offline, the last successful prices are shown from local cache.</div>
+          </div>
+          <div>
+            <div class="guide-section-title">Nuke</div>
+            <div>The Nuke button clears all <code>bmd_*</code> keys and reloads the page. OAuth tokens are also removed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-/* LOCATION */
-function setLoc(){
-navigator.geolocation.getCurrentPosition(function(p){
-localStorage.setItem('bmd_loc',JSON.stringify({lat:p.coords.latitude,lon:p.coords.longitude}));
-loadWeather();loadPrayer();
-});
-}
+  <!-- Support Overlay -->
+  <div class="overlay" id="overlaySupport">
+    <div class="overlay-inner">
+      <div class="overlay-header">
+        <div>
+          <div class="overlay-title">Support</div>
+          <div class="overlay-subtitle">Send feedback or issues via Web3Forms.</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnSupportClose">Close</button>
+      </div>
+      <div class="overlay-body">
+        <form class="support-form" id="supportForm">
+          <input type="hidden" name="access_key" value="53bad208-02b2-40b6-974b-98f8b68d0439">
+          <label>
+            Your email
+            <input class="input" name="email" type="email" placeholder="you@example.com" required>
+          </label>
+          <label>
+            Subject
+            <input class="input" name="subject" placeholder="Dashboard feedback" required>
+          </label>
+          <label>
+            Message
+            <textarea class="input" name="message" placeholder="Tell me what is working, what is not, and what you would love to see." required></textarea>
+          </label>
+          <div>
+            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+          </div>
+          <div id="supportStatus"></div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-/* WEATHER */
-var useC=true;
-function loadWeather(){
-var l=JSON.parse(localStorage.getItem('bmd_loc')||'null');
-if(!l)return;
-fetch('https://api.open-meteo.com/v1/forecast?latitude='+l.lat+'&longitude='+l.lon+'&current_weather=true')
-.then(function(r){return r.json()})
-.then(function(d){
-var t=d.current_weather.temperature;
-if(!useC)t=t*9/5+32;
-document.getElementById('weather').innerHTML='Temp '+t.toFixed(1);
-});
-}
+  <!-- Updates / Changelog Overlay -->
+  <div class="overlay" id="overlayUpdates">
+    <div class="overlay-inner">
+      <div class="overlay-header">
+        <div>
+          <div class="overlay-title">Updates</div>
+          <div class="overlay-subtitle">Changelog for this dashboard.</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btnUpdatesClose">Close</button>
+      </div>
+      <div class="overlay-body">
+        <div class="guide-content" id="updatesContent">
+          <div>
+            <div class="guide-section-title">v0.1.0</div>
+            <div>
+              Initial mobile dashboard skeleton: location-aware greeting, seven-segment clock, weather, quotes, tasks, news, prayers, Google and Microsoft stubs, markets, countdown, mini calendar, reminders, and overlays.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-/* QUOTES */
-var qs=["Dream big","Stay sharp","Focus","Build","Win","Learn","Execute","Push","Think","Grow","Lead","Create","Repeat","Discipline","Energy"];
-function newQ(){
-document.getElementById('quote').innerHTML=qs[Math.floor(Math.random()*qs.length)];
-}
-newQ();
+  <!-- Add Task Modal -->
+  <div class="modal" id="modalTask">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">Add reminder</div>
+        <button class="icon-btn" id="btnTaskClose">\u00d7</button>
+      </div>
+      <div class="modal-body">
+        <div class="support-form">
+          <label>
+            Title
+            <input class="input" id="taskTitleInput" placeholder="Reminder title">
+          </label>
+          <label>
+            Date
+            <input class="input" id="taskDateInput" type="date">
+          </label>
+          <label>
+            Time (optional)
+            <input class="input" id="taskTimeInput" type="time">
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-ghost" id="btnTaskCancel">Cancel</button>
+        <button class="btn btn-sm btn-primary" id="btnTaskSave">Save</button>
+      </div>
+    </div>
+  </div>
 
-/* TASKS */
-function loadTasks(){
-var t=JSON.parse(localStorage.getItem('bmd_tasks')||'[]'),el=document.getElementById('tasks');el.innerHTML='';
-var i;for(i=0;i<t.length;i++){
-var d=document.createElement('div');
-d.innerHTML=t[i]+' <button data-i="'+i+'">x</button>';
-el.appendChild(d);
-}
-}
-function addTask(){
-var v=document.getElementById('taskInput').value;if(!v)return;
-var t=JSON.parse(localStorage.getItem('bmd_tasks')||'[]');
-t.push(v);localStorage.setItem('bmd_tasks',JSON.stringify(t));
-loadTasks();
-}
+  <script>
+  (function () {
+    'use strict';
 
-/* COUNTDOWN */
-function updCd(){
-var c=JSON.parse(localStorage.getItem('bmd_cd')||'null');
-if(!c)return;
-var diff=new Date(c.date)-new Date();
-if(diff<0){document.getElementById('cd').innerHTML='Done';return;}
-var d=Math.floor(diff/86400000);
-document.getElementById('cd').innerHTML=c.name+' '+d+'d';
-}
-function saveCd(){
-localStorage.setItem('bmd_cd',JSON.stringify({name:cdName.value,date:cdDate.value}));
-updCd();
-}
+    // --- Utilities ---------------------------------------------------------
 
-/* CRYPTO */
-function loadCrypto(){
-fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,helium,binancecoin,official-trump&vs_currencies=usd')
-.then(function(r){return r.json()})
-.then(function(d){
-localStorage.setItem('bmd_crypto',JSON.stringify(d));
-renderCrypto(d);
-})
-.catch(function(){
-renderCrypto(JSON.parse(localStorage.getItem('bmd_crypto')||'{}'));
-});
-}
-function renderCrypto(d){
-var el=document.getElementById('crypto');el.innerHTML='';
-for(var k in d){
-var div=document.createElement('div');
-div.innerHTML=k+': $'+d[k].usd;
-el.appendChild(div);
-}
-}
+    function pad2(n) {
+      var s = String(Math.floor(n));
+      return s.length < 2 ? '0' + s : s;
+    }
 
-/* FOREX */
-function loadFx(){
-fetch('https://api.exchangerate.host/latest?base=USD')
-.then(function(r){return r.json()})
-.then(function(d){
-localStorage.setItem('bmd_forex',JSON.stringify(d));
-renderFx(d);
-})
-.catch(function(){
-renderFx(JSON.parse(localStorage.getItem('bmd_forex')||'{}'));
-});
-}
-function renderFx(d){
-var el=document.getElementById('fx');el.innerHTML='';
-if(!d.rates)return;
-var pairs=['EUR','SAR','GBP','AED'],i;
-for(i=0;i<pairs.length;i++){
-var p=pairs[i];
-var div=document.createElement('div');
-div.innerHTML='USD/'+p+': '+d.rates[p];
-el.appendChild(div);
-}
-}
+    function $(id) {
+      return document.getElementById(id);
+    }
 
-/* NEWS */
-function loadNews(){
-var feeds=[
-'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml',
-'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',
-'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml'
-];
-var i;
-for(i=0;i<feeds.length;i++){
-fetch(feeds[i])
-.then(function(r){return r.json()})
-.then(function(d){
-renderNews(d.items.slice(0,3));
-});
-}
-}
-function renderNews(items){
-var el=document.getElementById('news');
-var i;for(i=0;i<items.length;i++){
-var div=document.createElement('div');
-div.innerHTML=items[i].title;
-el.appendChild(div);
-}
-}
+    function parseJSONSafe(text, fallback) {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return fallback;
+      }
+    }
 
-/* PRAYER */
-function loadPrayer(){
-var l=JSON.parse(localStorage.getItem('bmd_loc')||'null');
-if(!l)return;
-fetch('https://api.aladhan.com/v1/timings?latitude='+l.lat+'&longitude='+l.lon+'&method=2')
-.then(function(r){return r.json()})
-.then(function(d){
-var t=d.data.timings;
-document.getElementById('prayer').innerHTML=
-'Fajr '+t.Fajr+'<br>Dhuhr '+t.Dhuhr+'<br>Asr '+t.Asr+'<br>Maghrib '+t.Maghrib;
-});
-}
+    function saveLS(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {}
+    }
 
-/* GOOGLE LOGIN (simplified token) */
-function gLogin(){
-window.open('https://accounts.google.com/o/oauth2/v2/auth?client_id=623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.com&redirect_uri='+encodeURIComponent(location.href)+'&response_type=token&scope=https://www.googleapis.com/auth/gmail.readonly','_blank');
-}
+    function loadLS(key, fallback) {
+      try {
+        var v = localStorage.getItem(key);
+        if (!v) return fallback;
+        return JSON.parse(v);
+      } catch (e) {
+        return fallback;
+      }
+    }
 
-/* MICROSOFT LOGIN */
-function mLogin(){
-window.open('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=1155afdf-d585-48cc-af89-b973843ce21a&response_type=token&redirect_uri='+encodeURIComponent('https://ghaziomairi93.github.io/houdini-tools/')+'&scope=openid profile Mail.Read Calendars.Read','_blank');
-}
+    function isoDateFromDate(d) {
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
 
-/* EVENTS */
-document.addEventListener('DOMContentLoaded',function(){
-locBtn.addEventListener('click',setLoc);
-unitBtn.addEventListener('click',function(){useC=!useC;loadWeather();});
-addTask.addEventListener('click',addTask);
-saveCd.addEventListener('click',saveCd);
-newQ.addEventListener('click',newQ);
-gLogin.addEventListener('click',gLogin);
-mLogin.addEventListener('click',mLogin);
+    function toLocalDateInTz(date, tz) {
+      try {
+        var s = date.toLocaleString('en-US', { timeZone: tz });
+        return new Date(s);
+      } catch (e) {
+        return new Date(date.getTime());
+      }
+    }
 
-loadTasks();
-updCd();
-loadWeather();
-loadCrypto();
-loadFx();
-loadNews();
-loadPrayer();
-});
+    function scrollToCard(id) {
+      var el = $(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
-})();
-</script>
+    function setBodyWeatherTheme(timeOfDay, condition) {
+      var body = document.body;
+      body.classList.remove(
+        'weather-theme-morning',
+        'weather-theme-day',
+        'weather-theme-evening',
+        'weather-theme-night',
+        'weather-theme-rain',
+        'weather-theme-clouds',
+        'weather-theme-clear'
+      );
+      var baseClass = '';
+      if (timeOfDay === 'morning') baseClass = 'weather-theme-morning';
+      else if (timeOfDay === 'day') baseClass = 'weather-theme-day';
+      else if (timeOfDay === 'evening') baseClass = 'weather-theme-evening';
+      else baseClass = 'weather-theme-night';
 
+      var condClass = '';
+      if (condition === 'rain') condClass = 'weather-theme-rain';
+      else if (condition === 'clouds') condClass = 'weather-theme-clouds';
+      else if (condition === 'clear') condClass = 'weather-theme-clear';
+
+      if (baseClass) body.classList.add(baseClass);
+      if (condClass) body.classList.add(condClass);
+    }
+
+    function createSevenSegmentDigit() {
+      var digit = document.createElement('div');
+      digit.className = 'digit';
+      for (var i = 0; i < 15; i++) {
+        var seg = document.createElement('div');
+        seg.className = 'seg';
+        digit.appendChild(seg);
+      }
+      return digit;
+    }
+
+    var SEG_MAP = {
+      '0': [1,1,1,1,1,1,0],
+      '1': [0,1,1,0,0,0,0],
+      '2': [1,1,0,1,1,0,1],
+      '3': [1,1,1,1,0,0,1],
+      '4': [0,1,1,0,0,1,1],
+      '5': [1,0,1,1,0,1,1],
+      '6': [1,0,1,1,1,1,1],
+      '7': [1,1,1,0,0,0,0],
+      '8': [1,1,1,1,1,1,1],
+      '9': [1,1,1,1,0,1,1]
+    };
+
+    function applyDigitSegments(digitEl, num) {
+      var pattern = SEG_MAP[num];
+      if (!pattern) pattern = SEG_MAP['0'];
+      var segs = digitEl.children;
+      var mapIndex = [1, 2, 5, 8, 7, 4, 10];
+      for (var i = 0; i < mapIndex.length; i++) {
+        var idx = mapIndex[i];
+        var seg = segs[idx];
+        if (!seg) continue;
+        if (pattern[i]) {
+          seg.classList.add('seg-on');
+        } else {
+          seg.classList.remove('seg-on');
+        }
+      }
+    }
+
+    function buildClockDigits(container) {
+      container.innerHTML = '';
+      var digits = [];
+      var i;
+      for (i = 0; i < 6; i++) {
+        var d = createSevenSegmentDigit();
+        container.appendChild(d);
+        digits.push(d);
+        if (i === 1 || i === 3) {
+          var colon = document.createElement('div');
+          colon.className = 'colon colon-off';
+          var dot1 = document.createElement('div');
+          dot1.className = 'colon-dot';
+          var dot2 = document.createElement('div');
+          dot2.className = 'colon-dot';
+          colon.appendChild(dot1);
+          colon.appendChild(dot2);
+          container.appendChild(colon);
+        }
+      }
+      return digits;
+    }
+
+    function setColonState(container, on) {
+      var colons = container.getElementsByClassName('colon');
+      for (var i = 0; i < colons.length; i++) {
+        if (on) colons[i].classList.remove('colon-off');
+        else colons[i].classList.add('colon-off');
+      }
+    }
+
+    // --- Global state ------------------------------------------------------
+
+    var state = {
+      loc: null,
+      unit: 'C',
+      quoteIndex: 0,
+      quotes: [],
+      tasks: [],
+      countdown: null,
+      selDate: isoDateFromDate(new Date()),
+      miniCalMonthOffset: 0,
+      crypto: null,
+      forex: null,
+      newsFresh: false,
+      cryptoFresh: false,
+      forexFresh: false
+    };
+
+    var googleClientId = '623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.com';
+    var googleCalendarScope = 'https://www.googleapis.com/auth/calendar';
+    var gmailScope = 'https://www.googleapis.com/auth/gmail.readonly';
+    var msClientId = '1155afdf-d585-48cc-af89-b973843ce21a';
+    var msRedirectUri = 'https://ghaziomairi93.github.io/houdini-tools/';
+    var msScopes = 'openid profile User.Read Mail.Read Calendars.Read Calendars.ReadWrite offline_access';
+
+    var clockDigits = null;
+    var lastClockSecond = -1;
+
+    // --- Quotes ------------------------------------------------------------
+
+    function initQuotes() {
+      state.quotes = [
+        { q: 'The future depends on what you do today.', a: 'Mahatma Gandhi', y: '1940s' },
+        { q: 'Action is the foundational key to all success.', a: 'Pablo Picasso', y: '20th c.' },
+        { q: 'Discipline is the bridge between goals and accomplishment.', a: 'Jim Rohn', y: '1970' },
+        { q: 'What you do every day matters more than what you do once in a while.', a: 'Gretchen Rubin', y: '2009' },
+        { q: 'Simplicity is the ultimate sophistication.', a: 'Leonardo da Vinci', y: '15th c.' },
+        { q: 'Well begun is half done.', a: 'Aristotle', y: '4th c. BC' },
+        { q: 'You do not rise to the level of your goals. You fall to the level of your systems.', a: 'James Clear', y: '2018' },
+        { q: 'The way to get started is to quit talking and begin doing.', a: 'Walt Disney', y: '20th c.' },
+        { q: 'Success is the sum of small efforts, repeated day in and day out.', a: 'Robert Collier', y: '1926' },
+        { q: 'Focus is a matter of deciding what things you are not going to do.', a: 'John Carmack', y: '1990s' },
+        { q: 'If you want to go fast, go alone. If you want to go far, go together.', a: 'African proverb', y: '--' },
+        { q: 'The secret of getting ahead is getting started.', a: 'Mark Twain', y: '19th c.' },
+        { q: 'Motivation is what gets you started. Habit is what keeps you going.', a: 'Jim Ryun', y: '1970s' },
+        { q: 'Do the hard things, especially when you do not feel like it.', a: 'Unknown', y: '--' },
+        { q: 'Big minds are built in small, consistent sessions.', a: 'Dashboard', y: '2026' }
+      ];
+      var saved = loadLS('bmd_quote', null);
+      if (saved && typeof saved.index === 'number') {
+        state.quoteIndex = saved.index % state.quotes.length;
+      } else {
+        state.quoteIndex = 0;
+      }
+      renderQuote();
+    }
+
+    function renderQuote() {
+      var q = state.quotes[state.quoteIndex];
+      $('quoteText').textContent = '\u201c' + q.q + '\u201d';
+      $('quoteMeta').textContent = q.a + ' \u00b7 ' + q.y;
+      $('quoteIndex').textContent = (state.quoteIndex + 1) + ' / ' + state.quotes.length;
+      saveLS('bmd_quote', { index: state.quoteIndex });
+    }
+
+    function nextQuote() {
+      state.quoteIndex = (state.quoteIndex + 1) % state.quotes.length;
+      renderQuote();
+    }
+
+    // --- Location ----------------------------------------------------------
+
+    function loadLocation() {
+      var loc = loadLS('bmd_loc', null);
+      if (loc && typeof loc.lat === 'number' && typeof loc.lon === 'number') {
+        state.loc = loc;
+      } else {
+        state.loc = null;
+      }
+      updateLocationUI();
+    }
+
+    function updateLocationUI() {
+      var label = 'Set location';
+      var tzLabel = '--';
+      var locName = '--';
+      if (state.loc) {
+        label = state.loc.name || 'Location';
+        tzLabel = state.loc.tz || 'Local';
+        locName = state.loc.name || '--';
+      }
+      $('greetingLocLabel').textContent = label;
+      $('greetingTz').textContent = 'Timezone: ' + tzLabel;
+      $('clockTzLabel').textContent = tzLabel;
+      $('prayerLocationLabel').textContent = 'Location: ' + locName;
+    }
+
+    function openLocationOverlay() {
+      $('overlayLocation').classList.add('visible');
+      $('locationSearch').focus();
+      $('locationResults').innerHTML = '';
+    }
+
+    function closeLocationOverlay() {
+      $('overlayLocation').classList.remove('visible');
+    }
+
+    function searchLocation(query) {
+      if (!query || query.length < 2) {
+        $('locationResults').innerHTML = '';
+        return;
+      }
+      var url = 'https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&name=' + encodeURIComponent(query);
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        var results = data && data.results ? data.results : [];
+        var container = $('locationResults');
+        container.innerHTML = '';
+        if (!results.length) {
+          var empty = document.createElement('div');
+          empty.textContent = 'No results.';
+          container.appendChild(empty);
+          return;
+        }
+        for (var i = 0; i < results.length; i++) {
+          (function (item) {
+            var row = document.createElement('div');
+            row.className = 'location-result';
+            var main = document.createElement('div');
+            main.className = 'location-main';
+            var name = document.createElement('div');
+            name.className = 'location-name';
+            name.textContent = item.name;
+            var country = document.createElement('div');
+            country.className = 'location-country';
+            var parts = [];
+            if (item.admin1) parts.push(item.admin1);
+            if (item.country) parts.push(item.country);
+            country.textContent = parts.join(', ');
+            main.appendChild(name);
+            main.appendChild(country);
+            var pin = document.createElement('div');
+            pin.className = 'location-pin';
+            pin.innerHTML = '\uD83D\uDCCD';
+            row.appendChild(main);
+            row.appendChild(pin);
+            row.addEventListener('click', function () {
+              var tz = item.timezone || 'UTC';
+              state.loc = {
+                lat: item.latitude,
+                lon: item.longitude,
+                name: item.name + (item.country ? ', ' + item.country : ''),
+                tz: tz
+              };
+              saveLS('bmd_loc', state.loc);
+              closeLocationOverlay();
+              updateLocationUI();
+              refreshAllLocationDependent();
+            });
+            container.appendChild(row);
+          })(results[i]);
+        }
+      })['catch'](function () {});
+    }
+
+    // --- Greeting ----------------------------------------------------------
+
+    function updateGreeting() {
+      var now = new Date();
+      var tz = state.loc && state.loc.tz ? state.loc.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
+      var local = toLocalDateInTz(now, tz);
+      var hour = local.getHours();
+      var greeting = 'Hello';
+      if (hour >= 5 && hour < 12) greeting = 'Good morning';
+      else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+      else if (hour >= 17 && hour < 22) greeting = 'Good evening';
+      else greeting = 'Good night';
+      $('greetingLine').textContent = greeting + ', Big Mind';
+      var dateStr = local.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      $('greetingDate').textContent = dateStr;
+    }
+
+    // --- Weather -----------------------------------------------------------
+
+    function fetchWeather() {
+      if (!state.loc) {
+        $('weatherCond').textContent = 'Set a location to see weather.';
+        $('weatherCity').textContent = '--';
+        $('weatherTemp').innerHTML = '--<span class="unit">\u00b0' + state.unit + '</span>';
+        return;
+      }
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(state.loc.lat) +
+        '&longitude=' + encodeURIComponent(state.loc.lon) +
+        '&current_weather=true';
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        var cw = data && data.current_weather ? data.current_weather : null;
+        if (!cw) return;
+        var tempC = cw.temperature;
+        var temp = tempC;
+        if (state.unit === 'F') {
+          temp = tempC * 9 / 5 + 32;
+        }
+        var tempStr = Math.round(temp);
+        $('weatherTemp').innerHTML = tempStr + '<span class="unit">\u00b0' + state.unit + '</span>';
+        var code = cw.weathercode;
+        var cond = 'Clear';
+        var icon = '\u2600\uFE0F';
+        var condKey = 'clear';
+        if (code >= 45 && code <= 48) {
+          cond = 'Fog';
+          icon = '\uD83C\uDF2B\uFE0F';
+          condKey = 'clouds';
+        } else if (code >= 51 && code <= 67) {
+          cond = 'Drizzle';
+          icon = '\uD83C\uDF27\uFE0F';
+          condKey = 'rain';
+        } else if (code >= 71 && code <= 77) {
+          cond = 'Snow';
+          icon = '\u2744\uFE0F';
+          condKey = 'clouds';
+        } else if (code >= 80 && code <= 82) {
+          cond = 'Rain showers';
+          icon = '\uD83C\uDF27\uFE0F';
+          condKey = 'rain';
+        } else if (code >= 95) {
+          cond = 'Thunderstorm';
+          icon = '\u26C8\uFE0F';
+          condKey = 'rain';
+        } else if (code >= 1 && code <= 3) {
+          cond = 'Clouds';
+          icon = '\u2601\uFE0F';
+          condKey = 'clouds';
+        }
+        $('weatherCond').textContent = cond;
+        $('weatherIcon').textContent = icon;
+        $('weatherCity').textContent = state.loc.name || '--';
+
+        var tz = state.loc && state.loc.tz ? state.loc.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        var local = toLocalDateInTz(new Date(), tz);
+        var h = local.getHours();
+        var tod = 'night';
+        if (h >= 5 && h < 11) tod = 'morning';
+        else if (h >= 11 && h < 17) tod = 'day';
+        else if (h >= 17 && h < 21) tod = 'evening';
+        else tod = 'night';
+        setBodyWeatherTheme(tod, condKey);
+      })['catch'](function () {});
+    }
+
+    // --- Clock -------------------------------------------------------------
+
+    function startClock() {
+      var container = $('clockDisplay');
+      clockDigits = buildClockDigits(container);
+      function tick() {
+        var now = new Date();
+        var tz = state.loc && state.loc.tz ? state.loc.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        var local = toLocalDateInTz(now, tz);
+        var h = local.getHours();
+        var m = local.getMinutes();
+        var s = local.getSeconds();
+        if (s !== lastClockSecond) {
+          lastClockSecond = s;
+          var hh = pad2(h);
+          var mm = pad2(m);
+          var ss = pad2(s);
+          var str = hh + mm + ss;
+          for (var i = 0; i < 6; i++) {
+            applyDigitSegments(clockDigits[i], str.charAt(i));
+          }
+          setColonState(container, s % 2 === 0);
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // --- Stats -------------------------------------------------------------
+
+    function updateStats() {
+      var gmailUnread = 0;
+      var gcalToday = 0;
+      $('statGmailCount').textContent = gmailUnread;
+      $('statGCalCount').textContent = gcalToday;
+    }
+
+    // --- Tasks / Reminders -------------------------------------------------
+
+    function loadTasks() {
+      var tasks = loadLS('bmd_tasks', []);
+      if (!tasks || !tasks.length) {
+        state.tasks = [];
+      } else {
+        state.tasks = tasks;
+      }
+    }
+
+    function saveTasks() {
+      saveLS('bmd_tasks', state.tasks);
+    }
+
+    function tasksForDate(dateStr) {
+      var out = [];
+      for (var i = 0; i < state.tasks.length; i++) {
+        if (state.tasks[i].dk === dateStr) out.push(state.tasks[i]);
+      }
+      return out;
+    }
+
+    function updateTasksSummary() {
+      var list = tasksForDate(state.selDate);
+      var count = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (!list[i].done) count++;
+      }
+      $('tasksSummaryNumber').textContent = count;
+      $('tasksSummaryDate').textContent = state.selDate;
+    }
+
+    function renderReminders() {
+      var listEl = $('remList');
+      listEl.innerHTML = '';
+      var list = tasksForDate(state.selDate);
+      if (!list.length) {
+        var empty = document.createElement('div');
+        empty.textContent = 'No reminders for this day.';
+        empty.style.fontSize = '12px';
+        empty.style.color = '#9ca3af';
+        listEl.appendChild(empty);
+      }
+      for (var i = 0; i < list.length; i++) {
+        (function (task) {
+          var row = document.createElement('div');
+          row.className = 'rem-item';
+          var cb = document.createElement('div');
+          cb.className = 'rem-checkbox';
+          if (task.done) cb.textContent = '\u2713';
+          var main = document.createElement('div');
+          var title = document.createElement('div');
+          title.className = 'rem-title';
+          if (task.done) title.classList.add('done');
+          title.textContent = task.title;
+          var meta = document.createElement('div');
+          meta.className = 'rem-meta';
+          meta.textContent = task.dk + (task.time ? ' \u00b7 ' + task.time : '');
+          main.appendChild(title);
+          main.appendChild(meta);
+          var del = document.createElement('button');
+          del.className = 'icon-btn';
+          del.textContent = '\u2715';
+
+          cb.addEventListener('click', function () {
+            task.done = !task.done;
+            saveTasks();
+            renderReminders();
+            updateTasksSummary();
+          });
+          del.addEventListener('click', function () {
+            var idx = -1;
+            for (var j = 0; j < state.tasks.length; j++) {
+              if (state.tasks[j].id === task.id) {
+                idx = j;
+                break;
+              }
+            }
+            if (idx >= 0) {
+              state.tasks.splice(idx, 1);
+              saveTasks();
+              renderReminders();
+              updateTasksSummary();
+            }
+          });
+
+          row.appendChild(cb);
+          row.appendChild(main);
+          row.appendChild(del);
+          listEl.appendChild(row);
+        })(list[i]);
+      }
+      $('remindersDateLabel').textContent = state.selDate;
+    }
+
+    function buildRemPillBar() {
+      var bar = $('remPillBar');
+      bar.innerHTML = '';
+      var base = new Date();
+      var tz = state.loc && state.loc.tz ? state.loc.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
+      base = toLocalDateInTz(base, tz);
+      base.setHours(0,0,0,0);
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(base.getTime());
+        d.setDate(d.getDate() + i);
+        var ds = isoDateFromDate(d);
+        var pill = document.createElement('div');
+        pill.className = 'pill-day';
+        if (ds === state.selDate) pill.classList.add('active');
+        var dow = d.toLocaleDateString(undefined, { weekday: 'short' });
+        var dom = d.getDate();
+        pill.innerHTML = '<span class="dow">' + dow + '</span><span class="dom">' + dom + '</span>';
+        (function (dateStr) {
+          pill.addEventListener('click', function () {
+            state.selDate = dateStr;
+            buildRemPillBar();
+            buildGCalPillBar();
+            buildMsCalPillBar();
+            renderReminders();
+            updateTasksSummary();
+          });
+        })(ds);
+        bar.appendChild(pill);
+      }
+    }
+
+    function openTaskModal() {
+      $('modalTask').classList.add('visible');
+      $('taskTitleInput').focus();
+      $('taskDateInput').value = state.selDate;
+    }
+
+    function closeTaskModal() {
+      $('modalTask').classList.remove('visible');
+    }
+
+    function addTaskFromModal() {
+      var title = $('taskTitleInput').value.trim();
+      var date = $('taskDateInput').value || state.selDate;
+      var time = $('taskTimeInput').value;
+      if (!title) return;
+      var id = 't_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      state.tasks.push({ id: id, title: title, done: false, dk: date, time: time });
+      saveTasks();
+      $('taskTitleInput').value = '';
+      $('taskTimeInput').value = '';
+      closeTaskModal();
+      state.selDate = date;
+      buildRemPillBar();
+      renderReminders();
+      updateTasksSummary();
+    }
+
+    function clearDoneTasks() {
+      var next = [];
+      for (var i = 0; i < state.tasks.length; i++) {
+        if (!state.tasks[i].done) next.push(state.tasks[i]);
+      }
+      state.tasks = next;
+      saveTasks();
+      renderReminders();
+      updateTasksSummary();
+    }
+
+    // --- Mini Calendar -----------------------------------------------------
+
+    function renderMiniCalendar() {
+      var grid = $('miniCalGrid');
+      grid.innerHTML = '';
+      var header = $('miniCalMonth');
+      var base = new Date();
+      base.setDate(1);
+      base.setMonth(base.getMonth() + state.miniCalMonthOffset);
+      var month = base.getMonth();
+      var year = base.getFullYear();
+      header.textContent = base.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+      var dowNames = ['S','M','T','W','T','F','S'];
+      for (var i = 0; i < 7; i++) {
+        var d = document.createElement('div');
+        d.className = 'mini-cal-dow';
+        d.textContent = dowNames[i];
+        grid.appendChild(d);
+      }
+
+      var firstDow = new Date(year, month, 1).getDay();
+      var leading = (firstDow - 0 + 7) % 7;
+      var daysInMonth = new Date(year, month + 1, 0).getDate();
+      var prevMonthDays = new Date(year, month, 0).getDate();
+
+      var totalCells = 42;
+      var dayNum;
+      var cellDate;
+      var today = new Date();
+      var todayStr = isoDateFromDate(today);
+
+      for (var cell = 0; cell < totalCells; cell++) {
+        var dayEl = document.createElement('div');
+        dayEl.className = 'mini-cal-day';
+        if (cell < leading) {
+          dayNum = prevMonthDays - leading + 1 + cell;
+          cellDate = new Date(year, month - 1, dayNum);
+          dayEl.classList.add('other');
+        } else if (cell >= leading + daysInMonth) {
+          dayNum = cell - leading - daysInMonth + 1;
+          cellDate = new Date(year, month + 1, dayNum);
+          dayEl.classList.add('other');
+        } else {
+          dayNum = cell - leading + 1;
+          cellDate = new Date(year, month, dayNum);
+        }
+        var ds = isoDateFromDate(cellDate);
+        dayEl.textContent = cellDate.getDate();
+        if (ds === todayStr) {
+          dayEl.classList.add('today');
+        }
+        if (ds === state.selDate) {
+          dayEl.classList.add('selected');
+        }
+        (function (dateStr) {
+          dayEl.addEventListener('click', function () {
+            state.selDate = dateStr;
+            renderMiniCalendar();
+            buildRemPillBar();
+            buildGCalPillBar();
+            buildMsCalPillBar();
+            renderReminders();
+            updateTasksSummary();
+          });
+        })(ds);
+        grid.appendChild(dayEl);
+      }
+    }
+
+    // --- Countdown ---------------------------------------------------------
+
+    function loadCountdown() {
+      var cd = loadLS('bmd_cd', null);
+      if (cd && cd.name && cd.date) {
+        state.countdown = cd;
+      } else {
+        state.countdown = null;
+      }
+      renderCountdown();
+    }
+
+    function saveCountdown() {
+      if (state.countdown) {
+        saveLS('bmd_cd', state.countdown);
+      } else {
+        try { localStorage.removeItem('bmd_cd'); } catch (e) {}
+      }
+    }
+
+    function renderCountdown() {
+      var nameLabel = $('cdNameLabel');
+      var layout = $('cdLayout');
+      layout.innerHTML = '';
+      if (!state.countdown) {
+        nameLabel.textContent = 'No countdown set';
+        return;
+      }
+      nameLabel.textContent = state.countdown.name;
+      var targetStr = state.countdown.date;
+      if (state.countdown.time) {
+        targetStr += 'T' + state.countdown.time + ':00';
+      } else {
+        targetStr += 'T00:00:00';
+      }
+      var target = new Date(targetStr);
+      var now = new Date();
+      var diff = target.getTime() - now.getTime();
+      if (diff <= 0) {
+        var done = document.createElement('div');
+        done.textContent = 'Countdown reached.';
+        done.style.fontSize = '12px';
+        done.style.color = '#9ca3af';
+        layout.appendChild(done);
+        return;
+      }
+      var totalSeconds = Math.floor(diff / 1000);
+      var totalHours = Math.floor(totalSeconds / 3600);
+      if (totalHours >= 24) {
+        var days = Math.floor(totalHours / 24);
+        var hours = totalHours % 24;
+        var boxD = document.createElement('div');
+        boxD.className = 'cd-box';
+        boxD.innerHTML = '<span class="value">' + days + '</span><span class="label">Days</span>';
+        var boxH = document.createElement('div');
+        boxH.className = 'cd-box';
+        boxH.innerHTML = '<span class="value">' + hours + '</span><span class="label">Hours</span>';
+        layout.appendChild(boxD);
+        layout.appendChild(boxH);
+      } else {
+        var h = Math.floor(totalSeconds / 3600);
+        var m = Math.floor((totalSeconds % 3600) / 60);
+        var s = totalSeconds % 60;
+        var span = document.createElement('div');
+        span.className = 'cd-inline';
+        span.textContent = pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+        layout.appendChild(span);
+      }
+    }
+
+    function startCountdownTicker() {
+      function tick() {
+        if (state.countdown) {
+          renderCountdown();
+        }
+        setTimeout(tick, 1000);
+      }
+      tick();
+    }
+
+    // --- News --------------------------------------------------------------
+
+    function fetchNews() {
+      state.newsFresh = false;
+      $('newsFreshDot').classList.add('offline');
+      var feeds = [
+        { tag: 'Auto', css: 'tag-auto', url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml', count: 3 },
+        { tag: 'Middle East', css: 'tag-me', url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', count: 3 },
+        { tag: 'Most Viewed', css: 'tag-mv', url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml', count: 3 },
+        { tag: 'Most Shared', css: 'tag-ms', url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/MostShared.xml', count: 3 },
+        { tag: 'Personal Tech', css: 'tag-tech', url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/PersonalTech.xml', count: 3 }
+      ];
+      var promises = [];
+      for (var i = 0; i < feeds.length; i++) {
+        (function (feed) {
+          var p = fetch(feed.url).then(function (r) { return r.json(); }).then(function (data) {
+            var items = data && data.items ? data.items.slice(0, feed.count) : [];
+            return { feed: feed, items: items };
+          })['catch'](function () {
+            return { feed: feed, items: [] };
+          });
+          promises.push(p);
+        })(feeds[i]);
+      }
+      Promise.all(promises).then(function (results) {
+        var list = $('newsList');
+        list.innerHTML = '';
+        var any = false;
+        for (var i = 0; i < results.length; i++) {
+          var res = results[i];
+          var feed = res.feed;
+          var items = res.items;
+          for (var j = 0; j < items.length; j++) {
+            any = true;
+            var item = items[j];
+            var row = document.createElement('div');
+            row.className = 'news-item';
+            var top = document.createElement('div');
+            top.className = 'news-top';
+            var tag = document.createElement('div');
+            tag.className = 'news-tag ' + feed.css;
+            tag.textContent = feed.tag;
+            var date = document.createElement('div');
+            date.className = 'news-date';
+            var d = item.pubDate ? new Date(item.pubDate) : null;
+            date.textContent = d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '--';
+            top.appendChild(tag);
+            top.appendChild(date);
+            var title = document.createElement('div');
+            title.textContent = item.title || '';
+            row.appendChild(top);
+            row.appendChild(title);
+            list.appendChild(row);
+          }
+        }
+        if (!any) {
+          var empty = document.createElement('div');
+          empty.textContent = 'Could not load headlines.';
+          empty.style.fontSize = '12px';
+          empty.style.color = '#9ca3af';
+          list.appendChild(empty);
+        } else {
+          state.newsFresh = true;
+          $('newsFreshDot').classList.remove('offline');
+        }
+      });
+    }
+
+    // --- Prayer Times ------------------------------------------------------
+
+    function fetchPrayerTimes() {
+      if (!state.loc) {
+        $('prayerList').innerHTML = '<div style="font-size:12px;color:#9ca3af;">Set a location to load prayer times.</div>';
+        return;
+      }
+      var now = new Date();
+      var tz = state.loc.tz || 'UTC';
+      var local = toLocalDateInTz(now, tz);
+      var day = local.getDate();
+      var month = local.getMonth() + 1;
+      var year = local.getFullYear();
+      var url = 'https://api.aladhan.com/v1/timings/' + day + '-' + month + '-' + year +
+        '?latitude=' + encodeURIComponent(state.loc.lat) +
+        '&longitude=' + encodeURIComponent(state.loc.lon) +
+        '&method=2';
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        var t = data && data.data && data.data.timings ? data.data.timings : null;
+        if (!t) return;
+        var prayers = [
+          { key: 'Fajr', label: 'Fajr' },
+          { key: 'Dhuhr', label: 'Dhuhr' },
+          { key: 'Asr', label: 'Asr' },
+          { key: 'Maghrib', label: 'Maghrib' },
+          { key: 'Isha', label: 'Isha' }
+        ];
+        var list = $('prayerList');
+        list.innerHTML = '';
+        var nowMinutes = local.getHours() * 60 + local.getMinutes();
+        var nextIndex = -1;
+        var minDiff = 1e9;
+        for (var i = 0; i < prayers.length; i++) {
+          var timeStr = t[prayers[i].key];
+          if (!timeStr) continue;
+          var parts = timeStr.split(':');
+          var hh = parseInt(parts[0], 10);
+          var mm = parseInt(parts[1], 10);
+          var minutes = hh * 60 + mm;
+          var diff = minutes - nowMinutes;
+          if (diff >= 0 && diff < minDiff) {
+            minDiff = diff;
+            nextIndex = i;
+          }
+        }
+        for (var j = 0; j < prayers.length; j++) {
+          var p = prayers[j];
+          var timeStr2 = t[p.key];
+          if (!timeStr2) timeStr2 = '--:--';
+          var item = document.createElement('div');
+          item.className = 'prayer-item';
+          if (j === nextIndex) item.classList.add('prayer-next');
+          var name = document.createElement('div');
+          name.className = 'prayer-name';
+          name.textContent = p.label;
+          var time = document.createElement('div');
+          time.className = 'prayer-time';
+          time.textContent = timeStr2;
+          item.appendChild(name);
+          item.appendChild(time);
+          list.appendChild(item);
+        }
+      })['catch'](function () {});
+    }
+
+    // --- Google OAuth & APIs (skeleton) -----------------------------------
+
+    function getGoogleToken() {
+      return loadLS('google_token', null);
+    }
+
+    function setGoogleToken(token) {
+      saveLS('google_token', token);
+    }
+
+    function connectGoogle() {
+      // Using Google Identity Services One Tap / popup is recommended.
+      // Here we just hint that sign-in should happen; actual token exchange
+      // is expected to be handled via GSI on the redirect page.
+      alert('Google sign-in is configured via Google Identity Services.\nComplete sign-in on the configured redirect page; token is expected under "google_token" in localStorage.');
+    }
+
+    function fetchGoogleCalendar() {
+      var token = getGoogleToken();
+      var list = $('gcalList');
+      list.innerHTML = '';
+      if (!token) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Connect Google to load events.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        return;
+      }
+      var sel = state.selDate;
+      var start = sel + 'T00:00:00Z';
+      var end = sel + 'T23:59:59Z';
+      fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=' + encodeURIComponent(start) + '&timeMax=' + encodeURIComponent(end) + '&singleEvents=true&orderBy=startTime', {
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        var items = data && data.items ? data.items : [];
+        renderCalendarList('gcalList', items, 'google');
+      })['catch'](function () {
+        var msg2 = document.createElement('div');
+        msg2.textContent = 'Failed to load Google Calendar.';
+        msg2.style.fontSize = '12px';
+        msg2.style.color = '#9ca3af';
+        list.appendChild(msg2);
+      });
+    }
+
+    function renderCalendarList(targetId, items, provider) {
+      var list = $(targetId);
+      list.innerHTML = '';
+      if (!items.length) {
+        var empty = document.createElement('div');
+        empty.textContent = 'No events for this day.';
+        empty.style.fontSize = '12px';
+        empty.style.color = '#9ca3af';
+        list.appendChild(empty);
+        return;
+      }
+      for (var i = 0; i < items.length; i++) {
+        (function (ev) {
+          var row = document.createElement('div');
+          row.className = 'calendar-event';
+          var main = document.createElement('div');
+          main.className = 'calendar-event-main';
+          var title = document.createElement('div');
+          title.className = 'calendar-event-title';
+          title.textContent = ev.summary || '(No title)';
+          var time = document.createElement('div');
+          time.className = 'calendar-event-time';
+          var start = ev.start && (ev.start.dateTime || ev.start.date);
+          var end = ev.end && (ev.end.dateTime || ev.end.date);
+          time.textContent = (start || '--') + ' \u2192 ' + (end || '--');
+          main.appendChild(title);
+          main.appendChild(time);
+          var actions = document.createElement('div');
+          actions.className = 'calendar-event-actions';
+          var openBtn = document.createElement('button');
+          openBtn.className = 'icon-btn';
+          openBtn.textContent = '\u21AA';
+          openBtn.title = 'Open in app';
+          openBtn.addEventListener('click', function () {
+            if (provider === 'google') {
+              window.location.href = 'googlecalendar://';
+            } else if (provider === 'ms') {
+              window.location.href = 'ms-outlook://';
+            }
+          });
+          var delBtn = document.createElement('button');
+          delBtn.className = 'icon-btn';
+          delBtn.textContent = '\u2715';
+          delBtn.title = 'Delete';
+          delBtn.addEventListener('click', function () {
+            if (provider === 'google') {
+              deleteGoogleEvent(ev);
+            } else if (provider === 'ms') {
+              deleteMsEvent(ev);
+            }
+          });
+          actions.appendChild(openBtn);
+          actions.appendChild(delBtn);
+          row.appendChild(main);
+          row.appendChild(actions);
+          list.appendChild(row);
+        })(items[i]);
+      }
+    }
+
+    function deleteGoogleEvent(ev) {
+      var token = getGoogleToken();
+      if (!token) return;
+      if (!ev.id) return;
+      fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(ev.id), {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function () {
+        fetchGoogleCalendar();
+      })['catch'](function () {});
+    }
+
+    function addGoogleEvent() {
+      var token = getGoogleToken();
+      if (!token) {
+        alert('Connect Google first.');
+        return;
+      }
+      var start = state.selDate + 'T09:00:00';
+      var end = state.selDate + 'T09:30:00';
+      var body = {
+        summary: 'Quick event',
+        start: { dateTime: start },
+        end: { dateTime: end }
+      };
+      fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token.access_token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }).then(function () {
+        fetchGoogleCalendar();
+      })['catch'](function () {});
+    }
+
+    function fetchGmail() {
+      var token = getGoogleToken();
+      var list = $('gmailList');
+      list.innerHTML = '';
+      if (!token) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Connect Google to load Gmail.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        return;
+      }
+      fetch('https://www.googleapis.com/gmail/v1/users/me/messages?labelIds=UNREAD&maxResults=15', {
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        var msgs = data && data.messages ? data.messages : [];
+        if (!msgs.length) {
+          var empty = document.createElement('div');
+          empty.textContent = 'No unread messages.';
+          empty.style.fontSize = '12px';
+          empty.style.color = '#9ca3af';
+          list.appendChild(empty);
+          $('statGmailCount').textContent = '0';
+          return;
+        }
+        $('statGmailCount').textContent = String(msgs.length);
+        var promises = [];
+        for (var i = 0; i < msgs.length; i++) {
+          (function (m) {
+            var p = fetch('https://www.googleapis.com/gmail/v1/users/me/messages/' + encodeURIComponent(m.id) + '?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date', {
+              headers: { Authorization: 'Bearer ' + token.access_token }
+            }).then(function (r) { return r.json(); })['catch'](function () { return null; });
+            promises.push(p);
+          })(msgs[i]);
+        }
+        Promise.all(promises).then(function (details) {
+          list.innerHTML = '';
+          for (var j = 0; j < details.length; j++) {
+            var msg = details[j];
+            if (!msg) continue;
+            var headers = msg.payload && msg.payload.headers ? msg.payload.headers : [];
+            var from = '';
+            var subject = '';
+            var dateStr = '';
+            for (var k = 0; k < headers.length; k++) {
+              var h = headers[k];
+              if (h.name === 'From') from = h.value;
+              if (h.name === 'Subject') subject = h.value;
+              if (h.name === 'Date') dateStr = h.value;
+            }
+            var senderName = from || 'Unknown';
+            var initials = senderName.charAt(0).toUpperCase();
+            var timeLabel = '';
+            if (dateStr) {
+              var d = new Date(dateStr);
+              timeLabel = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            }
+            var row = document.createElement('div');
+            row.className = 'mail-item';
+            var avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = initials;
+            var main = document.createElement('div');
+            main.className = 'mail-main';
+            var sender = document.createElement('div');
+            sender.className = 'mail-sender';
+            sender.textContent = senderName;
+            var subj = document.createElement('div');
+            subj.className = 'mail-subject';
+            subj.textContent = subject || '(No subject)';
+            main.appendChild(sender);
+            main.appendChild(subj);
+            var meta = document.createElement('div');
+            meta.className = 'mail-meta';
+            var time = document.createElement('div');
+            time.className = 'mail-time';
+            time.textContent = timeLabel || '--';
+            var dot = document.createElement('div');
+            dot.className = 'mail-dot';
+            meta.appendChild(time);
+            meta.appendChild(dot);
+            row.appendChild(avatar);
+            row.appendChild(main);
+            row.appendChild(meta);
+            (function (id) {
+              row.addEventListener('click', function () {
+                window.location.href = 'https://mail.google.com/';
+              });
+            })(msg.id);
+            list.appendChild(row);
+          }
+        });
+      })['catch'](function () {
+        var msg2 = document.createElement('div');
+        msg2.textContent = 'Failed to load Gmail.';
+        msg2.style.fontSize = '12px';
+        msg2.style.color = '#9ca3af';
+        list.appendChild(msg2);
+      });
+    }
+
+    function buildGCalPillBar() {
+      var bar = $('gcalPillBar');
+      bar.innerHTML = '';
+      var base = new Date(state.selDate + 'T00:00:00');
+      for (var i = -3; i <= 3; i++) {
+        var d = new Date(base.getTime());
+        d.setDate(d.getDate() + i);
+        var ds = isoDateFromDate(d);
+        var pill = document.createElement('div');
+        pill.className = 'pill-day';
+        if (ds === state.selDate) pill.classList.add('active');
+        var dow = d.toLocaleDateString(undefined, { weekday: 'short' });
+        var dom = d.getDate();
+        pill.innerHTML = '<span class="dow">' + dow + '</span><span class="dom">' + dom + '</span>';
+        (function (dateStr) {
+          pill.addEventListener('click', function () {
+            state.selDate = dateStr;
+            buildRemPillBar();
+            buildGCalPillBar();
+            buildMsCalPillBar();
+            renderMiniCalendar();
+            renderReminders();
+            updateTasksSummary();
+            fetchGoogleCalendar();
+            fetchMsCalendar();
+          });
+        })(ds);
+        bar.appendChild(pill);
+      }
+    }
+
+    // --- Microsoft OAuth & APIs (skeleton) ---------------------------------
+
+    function getMsToken() {
+      return loadLS('ms_token', null);
+    }
+
+    function setMsToken(token) {
+      saveLS('ms_token', token);
+    }
+
+    function generateCodeVerifier() {
+      var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+      var out = '';
+      for (var i = 0; i < 64; i++) {
+        out += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return out;
+    }
+
+    function sha256base64url(str) {
+      // PKCE code challenge generation is non-trivial without crypto.subtle;
+      // here we just reuse the verifier as challenge for simplicity in this skeleton.
+      return str;
+    }
+
+    function connectMicrosoft() {
+      var verifier = generateCodeVerifier();
+      saveLS('pkce_v', verifier);
+      var challenge = sha256base64url(verifier);
+      var params = [
+        'client_id=' + encodeURIComponent(msClientId),
+        'response_type=code',
+        'redirect_uri=' + encodeURIComponent(msRedirectUri),
+        'response_mode=query',
+        'scope=' + encodeURIComponent(msScopes),
+        'code_challenge=' + encodeURIComponent(challenge),
+        'code_challenge_method=plain'
+      ].join('&');
+      var url = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?' + params;
+      window.location.href = url;
+    }
+
+    function fetchMsCalendar() {
+      var token = getMsToken();
+      var list = $('msCalList');
+      list.innerHTML = '';
+      if (!token) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Connect Microsoft to load calendar.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        return;
+      }
+      var sel = state.selDate;
+      var start = sel + 'T00:00:00Z';
+      var end = sel + 'T23:59:59Z';
+      var url = 'https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=' + encodeURIComponent(start) + '&endDateTime=' + encodeURIComponent(end);
+      fetch(url, {
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        var items = data && data.value ? data.value : [];
+        renderCalendarList('msCalList', items, 'ms');
+      })['catch'](function () {
+        var msg2 = document.createElement('div');
+        msg2.textContent = 'Failed to load Outlook calendar.';
+        msg2.style.fontSize = '12px';
+        msg2.style.color = '#9ca3af';
+        list.appendChild(msg2);
+      });
+    }
+
+    function deleteMsEvent(ev) {
+      var token = getMsToken();
+      if (!token || !ev.id) return;
+      fetch('https://graph.microsoft.com/v1.0/me/events/' + encodeURIComponent(ev.id), {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function () {
+        fetchMsCalendar();
+      })['catch'](function () {});
+    }
+
+    function addMsEvent() {
+      var token = getMsToken();
+      if (!token) {
+        alert('Connect Microsoft first.');
+        return;
+      }
+      var start = state.selDate + 'T09:00:00';
+      var end = state.selDate + 'T09:30:00';
+      var body = {
+        subject: 'Quick event',
+        start: { dateTime: start, timeZone: 'UTC' },
+        end: { dateTime: end, timeZone: 'UTC' }
+      };
+      fetch('https://graph.microsoft.com/v1.0/me/events', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token.access_token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }).then(function () {
+        fetchMsCalendar();
+      })['catch'](function () {});
+    }
+
+    function fetchMsMail() {
+      var token = getMsToken();
+      var list = $('msMailList');
+      list.innerHTML = '';
+      if (!token) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Connect Microsoft to load Outlook mail.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        return;
+      }
+      var url = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$top=15&$filter=isRead eq false';
+      fetch(url, {
+        headers: { Authorization: 'Bearer ' + token.access_token }
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        var items = data && data.value ? data.value : [];
+        if (!items.length) {
+          var empty = document.createElement('div');
+          empty.textContent = 'No unread messages.';
+          empty.style.fontSize = '12px';
+          empty.style.color = '#9ca3af';
+          list.appendChild(empty);
+          return;
+        }
+        for (var i = 0; i < items.length; i++) {
+          (function (msg) {
+            var senderName = msg.from && msg.from.emailAddress && msg.from.emailAddress.name ? msg.from.emailAddress.name : 'Unknown';
+            var subject = msg.subject || '(No subject)';
+            var dateStr = msg.receivedDateTime;
+            var d = dateStr ? new Date(dateStr) : null;
+            var timeLabel = d ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '--';
+            var initials = senderName.charAt(0).toUpperCase();
+            var row = document.createElement('div');
+            row.className = 'mail-item';
+            var avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = initials;
+            var main = document.createElement('div');
+            main.className = 'mail-main';
+            var sender = document.createElement('div');
+            sender.className = 'mail-sender';
+            sender.textContent = senderName;
+            var subj = document.createElement('div');
+            subj.className = 'mail-subject';
+            subj.textContent = subject;
+            main.appendChild(sender);
+            main.appendChild(subj);
+            var meta = document.createElement('div');
+            meta.className = 'mail-meta';
+            var time = document.createElement('div');
+            time.className = 'mail-time';
+            time.textContent = timeLabel;
+            var dot = document.createElement('div');
+            dot.className = 'mail-dot';
+            meta.appendChild(time);
+            meta.appendChild(dot);
+            row.appendChild(avatar);
+            row.appendChild(main);
+            row.appendChild(meta);
+            row.addEventListener('click', function () {
+              window.location.href = 'message://';
+            });
+            list.appendChild(row);
+          })(items[i]);
+        }
+      })['catch'](function () {
+        var msg2 = document.createElement('div');
+        msg2.textContent = 'Failed to load Outlook mail.';
+        msg2.style.fontSize = '12px';
+        msg2.style.color = '#9ca3af';
+        list.appendChild(msg2);
+      });
+    }
+
+    function buildMsCalPillBar() {
+      var bar = $('msCalPillBar');
+      bar.innerHTML = '';
+      var base = new Date(state.selDate + 'T00:00:00');
+      for (var i = -3; i <= 3; i++) {
+        var d = new Date(base.getTime());
+        d.setDate(d.getDate() + i);
+        var ds = isoDateFromDate(d);
+        var pill = document.createElement('div');
+        pill.className = 'pill-day';
+        if (ds === state.selDate) pill.classList.add('active');
+        var dow = d.toLocaleDateString(undefined, { weekday: 'short' });
+        var dom = d.getDate();
+        pill.innerHTML = '<span class="dow">' + dow + '</span><span class="dom">' + dom + '</span>';
+        (function (dateStr) {
+          pill.addEventListener('click', function () {
+            state.selDate = dateStr;
+            buildRemPillBar();
+            buildGCalPillBar();
+            buildMsCalPillBar();
+            renderMiniCalendar();
+            renderReminders();
+            updateTasksSummary();
+            fetchGoogleCalendar();
+            fetchMsCalendar();
+          });
+        })(ds);
+        bar.appendChild(pill);
+      }
+    }
+
+    // --- Crypto & Forex ----------------------------------------------------
+
+    function loadCryptoCache() {
+      state.crypto = loadLS('bmd_crypto', null);
+    }
+
+    function loadForexCache() {
+      state.forex = loadLS('bmd_forex', null);
+    }
+
+    function renderCrypto() {
+      var list = $('cryptoList');
+      list.innerHTML = '';
+      if (!state.crypto || !state.crypto.prices) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Tap refresh to load prices.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        $('cryptoStatus').textContent = 'Offline state: no cache yet.';
+        $('cryptoFreshDot').classList.add('offline');
+        return;
+      }
+      var keys = ['bitcoin','ethereum','solana','helium','binancecoin','official-trump'];
+      var labels = {
+        'bitcoin': 'BTC',
+        'ethereum': 'ETH',
+        'solana': 'SOL',
+        'helium': 'HNT',
+        'binancecoin': 'BNB',
+        'official-trump': 'TRUMP'
+      };
+      for (var i = 0; i < keys.length; i++) {
+        var id = keys[i];
+        var price = state.crypto.prices[id];
+        var row = document.createElement('div');
+        row.className = 'price-item';
+        var name = document.createElement('div');
+        name.className = 'price-name';
+        name.textContent = labels[id] || id;
+        var val = document.createElement('div');
+        val.className = 'price-value';
+        val.textContent = price ? '$' + price.toFixed(2) : '--';
+        row.appendChild(name);
+        row.appendChild(val);
+        list.appendChild(row);
+      }
+      $('cryptoStatus').textContent = state.crypto.offline ? 'Offline \u2014 showing last price.' : 'Online \u2014 fresh data.';
+      if (state.crypto.offline) $('cryptoFreshDot').classList.add('offline');
+      else $('cryptoFreshDot').classList.remove('offline');
+    }
+
+    function renderForex() {
+      var list = $('forexList');
+      list.innerHTML = '';
+      if (!state.forex || !state.forex.rates) {
+        var msg = document.createElement('div');
+        msg.textContent = 'Tap refresh to load rates.';
+        msg.style.fontSize = '12px';
+        msg.style.color = '#9ca3af';
+        list.appendChild(msg);
+        $('forexStatus').textContent = 'Offline state: no cache yet.';
+        $('forexFreshDot').classList.add('offline');
+        return;
+      }
+      var pairs = [
+        { key: 'USD/EUR', label: 'USD/EUR' },
+        { key: 'USD/SAR', label: 'USD/SAR' },
+        { key: 'USD/GBP', label: 'USD/GBP' },
+        { key: 'USD/AED', label: 'USD/AED' },
+        { key: 'XAU', label: 'Gold XAU' },
+        { key: 'XAG', label: 'Silver XAG' }
+      ];
+      for (var i = 0; i < pairs.length; i++) {
+        var p = pairs[i];
+        var rate = state.forex.rates[p.key];
+        var row = document.createElement('div');
+        row.className = 'price-item';
+        var name = document.createElement('div');
+        name.className = 'price-name';
+        name.textContent = p.label;
+        var val = document.createElement('div');
+        val.className = 'price-value';
+        val.textContent = rate ? rate.toFixed(4) : '--';
+        row.appendChild(name);
+        row.appendChild(val);
+        list.appendChild(row);
+      }
+      $('forexStatus').textContent = state.forex.offline ? 'Offline \u2014 showing last rates.' : 'Online \u2014 fresh data.';
+      if (state.forex.offline) $('cryptoFreshDot').classList.add('offline');
+      else $('cryptoFreshDot').classList.remove('offline');
+    }
+
+    function fetchCryptoAndForex() {
+      $('cryptoFreshDot').classList.add('offline');
+      var ids = 'bitcoin,ethereum,solana,helium,binancecoin,official-trump';
+      var cryptoUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=' + encodeURIComponent(ids) + '&vs_currencies=usd';
+      var forexUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=EUR,SAR,GBP,AED,XAU,XAG';
+      var cryptoOk = false;
+      var forexOk = false;
+
+      fetch(cryptoUrl).then(function (r) { return r.json(); }).then(function (data) {
+        var prices = {};
+        if (data) {
+          if (data.bitcoin && data.bitcoin.usd) prices.bitcoin = data.bitcoin.usd;
+          if (data.ethereum && data.ethereum.usd) prices.ethereum = data.ethereum.usd;
+          if (data.solana && data.solana.usd) prices.solana = data.solana.usd;
+          if (data.helium && data.helium.usd) prices.helium = data.helium.usd;
+          if (data.binancecoin && data.binancecoin.usd) prices.binancecoin = data.binancecoin.usd;
+          if (data['official-trump'] && data['official-trump'].usd) prices['official-trump'] = data['official-trump'].usd;
+        }
+        state.crypto = { prices: prices, offline: false, ts: Date.now() };
+        saveLS('bmd_crypto', state.crypto);
+        cryptoOk = true;
+        renderCrypto();
+        if (cryptoOk && forexOk) $('cryptoFreshDot').classList.remove('offline');
+      })['catch'](function () {
+        if (!state.crypto) {
+          state.crypto = { prices: {}, offline: true, ts: Date.now() };
+        } else {
+          state.crypto.offline = true;
+        }
+        saveLS('bmd_crypto', state.crypto);
+        renderCrypto();
+      });
+
+      fetch(forexUrl).then(function (r) { return r.json(); }).then(function (data) {
+        var rates = {};
+        if (data && data.rates) {
+          rates['USD/EUR'] = data.rates.EUR;
+          rates['USD/SAR'] = data.rates.SAR;
+          rates['USD/GBP'] = data.rates.GBP;
+          rates['USD/AED'] = data.rates.AED;
+          rates['XAU'] = data.rates.XAU;
+          rates['XAG'] = data.rates.XAG;
+        }
+        state.forex = { rates: rates, offline: false, ts: Date.now() };
+        saveLS('bmd_forex', state.forex);
+        forexOk = true;
+        renderForex();
+        if (cryptoOk && forexOk) $('cryptoFreshDot').classList.remove('offline');
+      })['catch'](function () {
+        if (!state.forex) {
+          state.forex = { rates: {}, offline: true, ts: Date.now() };
+        } else {
+          state.forex.offline = true;
+        }
+        saveLS('bmd_forex', state.forex);
+        renderForex();
+      });
+    }
+
+    // --- Support form ------------------------------------------------------
+
+    function initSupportForm() {
+      var form = $('supportForm');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(form);
+        $('supportStatus').textContent = 'Sending\u2026';
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          body: fd
+        }).then(function (r) { return r.json(); }).then(function (data) {
+          if (data && data.success) {
+            $('supportStatus').textContent = 'Sent. Thank you.';
+            form.reset();
+          } else {
+            $('supportStatus').textContent = 'Failed to send.';
+          }
+        })['catch'](function () {
+          $('supportStatus').textContent = 'Failed to send.';
+        });
+      });
+    }
+
+    // --- Nuke --------------------------------------------------------------
+
+    function nukeAll() {
+      try {
+        localStorage.removeItem('bmd_loc');
+        localStorage.removeItem('bmd_tasks');
+        localStorage.removeItem('bmd_cd');
+        localStorage.removeItem('bmd_quote');
+        localStorage.removeItem('bmd_unit');
+        localStorage.removeItem('bmd_crypto');
+        localStorage.removeItem('bmd_forex');
+        localStorage.removeItem('google_token');
+        localStorage.removeItem('ms_token');
+        localStorage.removeItem('ms_refresh');
+        localStorage.removeItem('pkce_v');
+      } catch (e) {}
+      window.location.reload();
+    }
+
+    // --- Location-dependent refresh ---------------------------------------
+
+    function refreshAllLocationDependent() {
+      updateGreeting();
+      fetchWeather();
+      fetchPrayerTimes();
+      renderMiniCalendar();
+      buildRemPillBar();
+      buildGCalPillBar();
+      buildMsCalPillBar();
+      renderReminders();
+      updateTasksSummary();
+    }
+
+    // --- DOMContentLoaded --------------------------------------------------
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // Unit
+      var unitSaved = loadLS('bmd_unit', 'C');
+      if (unitSaved === 'F') state.unit = 'F';
+      var unitButtons = $('unitToggle').getElementsByTagName('button');
+      for (var i = 0; i < unitButtons.length; i++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            var unit = btn.getAttribute('data-unit');
+            state.unit = unit;
+            for (var j = 0; j < unitButtons.length; j++) {
+              unitButtons[j].classList.remove('active');
+            }
+            btn.classList.add('active');
+            saveLS('bmd_unit', unit);
+            fetchWeather();
+          });
+        })(unitButtons[i]);
+      }
+      if (state.unit === 'F') {
+        unitButtons[0].classList.remove('active');
+        unitButtons[1].classList.add('active');
+      }
+
+      // Quotes
+      initQuotes();
+      $('btnQuoteRefresh').addEventListener('click', nextQuote);
+      $('cardQuote').addEventListener('click', nextQuote);
+
+      // Location
+      loadLocation();
+      $('btnGreetingLocation').addEventListener('click', openLocationOverlay);
+      $('btnGreetingChangeLoc').addEventListener('click', openLocationOverlay);
+      $('btnPrayerChangeLoc').addEventListener('click', openLocationOverlay);
+      $('btnLocationClose').addEventListener('click', closeLocationOverlay);
+      $('locationSearch').addEventListener('input', function () {
+        searchLocation(this.value.trim());
+      });
+      $('weatherCard').addEventListener('click', openLocationOverlay);
+
+      // Greeting & clock
+      updateGreeting();
+      startClock();
+
+      // Weather
+      fetchWeather();
+
+      // Stats
+      updateStats();
+
+      // Tasks
+      loadTasks();
+      updateTasksSummary();
+      renderReminders();
+      buildRemPillBar();
+
+      // Mini calendar
+      renderMiniCalendar();
+      $('btnMiniPrev').addEventListener('click', function () {
+        state.miniCalMonthOffset -= 1;
+        renderMiniCalendar();
+      });
+      $('btnMiniNext').addEventListener('click', function () {
+        state.miniCalMonthOffset += 1;
+        renderMiniCalendar();
+      });
+
+      // Task modal
+      $('btnRemAdd').addEventListener('click', openTaskModal);
+      $('btnTaskClose').addEventListener('click', closeTaskModal);
+      $('btnTaskCancel').addEventListener('click', closeTaskModal);
+      $('btnTaskSave').addEventListener('click', addTaskFromModal);
+      $('taskTitleInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addTaskFromModal();
+        }
+      });
+      $('btnRemClearDone').addEventListener('click', clearDoneTasks);
+      $('cardTasksSummary').addEventListener('click', function () {
+        scrollToCard('cardReminders');
+      });
+
+      // News
+      $('btnNewsRefresh').addEventListener('click', fetchNews);
+      fetchNews();
+
+      // Prayer
+      fetchPrayerTimes();
+
+      // Google
+      $('btnGCalConnect').addEventListener('click', connectGoogle);
+      $('btnGCalAdd').addEventListener('click', addGoogleEvent);
+      $('btnGmailConnect').addEventListener('click', connectGoogle);
+      buildGCalPillBar();
+      fetchGoogleCalendar();
+      fetchGmail();
+
+      // Microsoft
+      $('btnMsConnect').addEventListener('click', connectMicrosoft);
+      $('btnMsCalAdd').addEventListener('click', addMsEvent);
+      buildMsCalPillBar();
+      fetchMsCalendar();
+      fetchMsMail();
+
+      // Crypto & Forex
+      loadCryptoCache();
+      loadForexCache();
+      renderCrypto();
+      renderForex();
+      $('btnCryptoRefresh').addEventListener('click', fetchCryptoAndForex);
+
+      // Countdown
+      loadCountdown();
+      startCountdownTicker();
+      $('btnCdSave').addEventListener('click', function () {
+        var name = $('cdNameInput').value.trim();
+        var date = $('cdDateInput').value;
+        var time = $('cdTimeInput').value;
+        if (!name || !date) return;
+        state.countdown = { name: name, date: date, time: time || '' };
+        saveCountdown();
+        renderCountdown();
+      });
+      $('btnCdClear').addEventListener('click', function () {
+        state.countdown = null;
+        saveCountdown();
+        renderCountdown();
+      });
+
+      // Stats row scroll
+      $('statGmail').addEventListener('click', function () {
+        scrollToCard('cardGmail');
+      });
+      $('statGCal').addEventListener('click', function () {
+        scrollToCard('cardGCal');
+      });
+
+      // Bottom bar
+      $('btnVersion').addEventListener('click', function () {
+        $('overlayUpdates').classList.add('visible');
+      });
+
+      $('btnGuideClose').addEventListener('click', function () {
+        $('overlayGuide').classList.remove('visible');
+      });
+      $('btnSupportClose').addEventListener('click', function () {
+        $('overlaySupport').classList.remove('visible');
+      });
+      $('btnUpdatesClose').addEventListener('click', function () {
+        $('overlayUpdates').classList.remove('visible');
+      });
+
+      // Support form
+      initSupportForm();
+
+      // Greeting card location button also opens overlay
+      $('cardGreeting').addEventListener('click', function (e) {
+        if (e.target === $('btnGreetingLocation') || e.target === $('btnGreetingChangeLoc')) return;
+      });
+
+      // Start markets fetch once
+      fetchCryptoAndForex();
+    });
+
+    // Bottom bar buttons (outside DOMContentLoaded to keep all wiring there? we keep inside)
+  })();
+  </script>
+
+  <div class="bottom-bar">
+    <div class="bottom-bar-inner">
+      <button class="bottom-btn" id="btnGuide">Guide</button>
+      <button class="bottom-btn" id="btnSupport">Support</button>
+      <button class="bottom-btn" id="btnUpdates">Updates</button>
+      <button class="bottom-btn bottom-btn-strong" id="btnNuke">Nuke</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    document.addEventListener('DOMContentLoaded', function () {
+      var btnGuide = document.getElementById('btnGuide');
+      var btnSupport = document.getElementById('btnSupport');
+      var btnUpdates = document.getElementById('btnUpdates');
+      var btnNuke = document.getElementById('btnNuke');
+
+      function nukeAllLocal() {
+        try {
+          localStorage.removeItem('bmd_loc');
+          localStorage.removeItem('bmd_tasks');
+          localStorage.removeItem('bmd_cd');
+          localStorage.removeItem('bmd_quote');
+          localStorage.removeItem('bmd_unit');
+          localStorage.removeItem('bmd_crypto');
+          localStorage.removeItem('bmd_forex');
+          localStorage.removeItem('google_token');
+          localStorage.removeItem('ms_token');
+          localStorage.removeItem('ms_refresh');
+          localStorage.removeItem('pkce_v');
+        } catch (e) {}
+        window.location.reload();
+      }
+
+      if (btnGuide) {
+        btnGuide.addEventListener('click', function () {
+          var ov = document.getElementById('overlayGuide');
+          if (ov) ov.classList.add('visible');
+        });
+      }
+      if (btnSupport) {
+        btnSupport.addEventListener('click', function () {
+          var ov = document.getElementById('overlaySupport');
+          if (ov) ov.classList.add('visible');
+        });
+      }
+      if (btnUpdates) {
+        btnUpdates.addEventListener('click', function () {
+          var ov = document.getElementById('overlayUpdates');
+          if (ov) ov.classList.add('visible');
+        });
+      }
+      if (btnNuke) {
+        btnNuke.addEventListener('click', function () {
+          if (confirm('This will clear all local data and tokens. Continue?')) {
+            nukeAllLocal();
+          }
+        });
+      }
+    });
+  })();
+  </script>
 </body>
 </html>
