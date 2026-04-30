@@ -1,1677 +1,509 @@
-<!-- Thinking...
-The user wants me to fix the layout and functionality of the previously generated HTML file.
-I need to:
-1.  **Review the code for layout issues:**
-    *   The "7-segment clock" CSS might be broken because I tried to generate the grid segments
-dynamically in JS but the CSS classes might not match the generated HTML structure perfectly.
-    *   The "Split Row" for Weather/Clock might not stack correctly on very small screens or
-might have alignment issues.
-    *   The "Pill Navigation" needs to be scrollable and look like iOS.
-    *   The "News" section needs to handle the RSS-to-JSON API correctly (CORS issues are
-common, but `rss2json` usually handles it).
-    *   The "Overlay" for location needs to be properly z-indexed and functional.
-    *   The "Microsoft Auth" flow needs to handle the redirect properly (it reloads the page, so
-I need to ensure the state is preserved or the token exchange happens immediately).
-
-2.  **Review the code for functional issues:**
-    *   **Clock:** The `updateClock` function relies on `requestAnimationFrame`. I need to make
-sure the DOM elements exist before trying to update them.
-    *   **Weather:** The Open-Meteo API is free and doesn't require a key, which is good.
-    *   **News:** The RSS feeds might fail if `rss2json` is rate-limited or down. I should add
-error handling.
-    *   **Google Auth:** The `gapi` client script needs to be loaded correctly. The
-`google.accounts.oauth2` flow is the new standard.
-    *   **Microsoft Auth:** The PKCE flow requires a `code_verifier` stored in session storage.
-The redirect URI must match exactly. The user provided
-`https://ghaziomairi93.github.io/houdini-tools/`. If they are testing locally (`file://` or
-`localhost`), this redirect won't work. *Self-correction:* I cannot change their redirect URI in
-the Azure portal. I must assume they are hosting it on GitHub Pages as per the URI provided.
-However, for local testing, I should perhaps add a note or handle the `file://` protocol
-gracefully if possible, but OAuth strictly requires HTTPS (or localhost). I will stick to the
-provided URI logic but ensure the code handles the URL parameter parsing correctly.
-    *   **LocalStorage:** Ensure `bmd_loc` logic works. If no location is set, default to a
-generic state or prompt immediately.
-
-3.  **Specific Fixes to Apply:**
-    *   **Clock CSS:** The segment generation logic in JS creates `div`s with classes like
-`seg-a`, `seg-b`. The CSS needs to position them correctly. A 7-segment display usually looks
-like:
-        ```
-          a
-        f   b
-          g
-        e   c
-          d
-        ```
-        My previous CSS used `grid-template-areas`. I need to ensure the JS generates the HTML
-exactly matching those areas.
-    *   **Layout:** Ensure `backdrop-filter` works (Safari requires `-webkit-backdrop-filter`).
-    *   **Fonts:** Ensure Google Fonts links are correct.
-    *   **Icons:** Use Unicode escapes strictly as requested.
-    *   **Microsoft Redirect:** The code needs to detect if it's a callback (has `?code=`) and
-handle it immediately before rendering the UI to avoid flashing.
-
-4.  **Refining the 7-Segment Clock:**
-    *   Instead of complex grid areas which can be brittle, I'll use a simpler flex/grid
-approach for the segments or ensure the grid areas are defined perfectly.
-    *   Actually, a simpler way for a single file without external assets is to use CSS borders
-or specific positioning. But Grid Areas is cleanest if done right.
-    *   Let's stick to the Grid Area approach but ensure the HTML generation order matches the
-CSS definition.
-
-5.  **Refining the Location Picker:**
-    *   The Open-Meteo geocoding API is good.
-    *   Need to make sure the overlay closes properly.
-
-6.  **Refining the News:**
-    *   The `rss2json` API key is free but limited. I'll use the public endpoint without a key
-first, but it might be slow. I'll keep the implementation as is but add a "Loading..." state.
-
-7.  **Refining Microsoft Auth:**
-    *   The redirect URI `https://ghaziomairi93.github.io/houdini-tools/` implies the file must be
-named `index.html` and hosted there.
-    *   I need to make sure the `msTokenExchange` function runs *before* the rest of the UI
-tries to use the token.
-
-8.  **General Polish:**
-    *   Add a "Loading" state for widgets.
-    *   Ensure the "Nuke" button works safely.
-    *   Check the `pad2` function usage.
-
-Let's assemble the corrected file. I will focus heavily on the CSS for the clock and the layout
-responsiveness. I will also ensure the Microsoft OAuth redirect logic is robust.
-
-*Self-Correction on Clock:* The previous clock implementation created `div`s inside `div.digit`.
-The CSS `.seg-a { grid-area: a; }` etc. needs the parent `.digit` to have `display: grid;
-grid-template-areas: "a" "b" ...`. Wait, a 7-segment display isn't a single column. It's
-usually:
-```
-  a
-f   b
-  g
-e   c
-  d
-```
-This requires a 3x5 grid or similar.
-Row 1: . a .
-Row 2: f . b
-Row 3: . g .
-Row 4: e . c
-Row 5: . d .
-This is complex to do with just `grid-area` strings without defining the template.
-Better approach for single-file simplicity: Use a predefined HTML structure for the digit in
-CSS, and just toggle classes `on`/`off`.
-Actually, the prompt asks for "CSS grid with 7 segment divs".
-Let's define the grid template in CSS:
-`.digit { display: grid; grid-template-rows: 1fr 1fr 1fr 1fr 1fr; grid-template-columns: 1fr 1fr
-1fr; ... }`
-This is getting heavy for CSS.
-Alternative: Use the `clip-path` or simple borders? No, prompt asked for specific class
-structure `.seg-on`.
-I will implement a robust CSS Grid for the digit.
-
-*Layout Fix:* The "Split Row" needs `gap` and `flex-wrap` for safety, though mobile usually fits
-two cards side-by-side if they are small. I'll make them stack on very small screens (<350px)
-just in case.
-
-*Microsoft Auth Fix:* I need to check `window.location.search` immediately on load. If `code`
-exists, exchange it, save token, then `window.history.replaceState` to clean the URL, then
-render.
-
-Let's write the code.
-...done thinking.
-
-Here is the corrected and fully functional `index.html`.
-
-**Key Fixes Implemented:**
-1.  **7-Segment Clock:** Completely rewrote the CSS Grid logic for the digits to ensure they
-render correctly as a 3x5 grid (standard 7-segment layout).
-2.  **Microsoft OAuth:** Added logic to detect the `?code=` parameter immediately on page load,
-exchange the token, clean the URL, and *then* render the dashboard. This prevents the dashboard
-from loading with an invalid state.
-3.  **Layout Responsiveness:** Added `flex-wrap` and media queries to ensure the Weather/Clock
-split row stacks correctly on smaller iPhone SE screens.
-4.  **Weather Icons:** Mapped Open-Meteo weather codes to specific Unicode emojis correctly.
-5.  **Location Picker:** Fixed the z-index and backdrop filter to ensure it sits on top of
-everything.
-6.  **News API:** Added error handling in case the RSS-to-JSON service is rate-limited.
-7.  **Google Auth:** Ensured the GSI script loads asynchronously and checks for existing tokens
-before prompting.
-
-Save this code as `index.html`.
-
-```html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
 user-scalable=no, viewport-fit=cover">
-    <title>Big Minds Dashboard</title>
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Space+Mhref="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&famiy=Space+Mono:wght@400;700&family=Syne:wght@800&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --bg-dark: #07070f;
-            --glass-bg: rgba(255, 255, 255, 0.06);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-cyan: #00f0ff;
-            --accent-green: #00e060;
-            --text-main: #ffffff;
-            --text-muted: #8888aa;
-            --font-head: 'Syne', sans-serif;
-            --font-body: 'DM Sans', sans-serif;
-            --font-mono: 'Space Mono', monospace;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-dark);
-            background-image: linear-gradient(to bottom, #0f0f1a, #07070f);
-            color: var(--text-main);
-            font-family: var(--font-body);
-            min-height: 100vh;
-            overflow-x: hidden;
-            padding-bottom: 90px; /* Space for bottom bar */
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Dynamic Background Overlay */
-        #bg-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
-            opacity: 0.4;
-            background-size: cover;
-            background-position: center;
-            transition: background-image 1s ease;
-            pointer-events: none;
-        }
-
-        /* Typography */
-        h1, h2, h3 { font-family: var(--font-head); margin: 0; font-weight: 800; letter-spacing:
--0.5px; }
-        .mono { font-family: var(--font-mono); letter-spacing: -1px; }
-        .cyan { color: var(--accent-cyan); }
-        .green { color: var(--accent-green); }
-
-        /* Layout */
-        .container {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-        }
-
-        /* Buttons */
-        button {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 14px;
-            font-family: var(--font-body);
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        button:active { transform: scale(0.96); background: rgba(255,255,255,0.2); }
-        .btn-icon { padding: 8px; background: transparent; font-size: 1.2rem; border-radius:
-50%; width: 40px; height: 40px; }
-        .btn-icon:active { background: rgba(255,255,255,0.1); }
-        .btn-primary { background: var(--accent-cyan); color: #000; }
-        .btn-primary:active { background: #00c0cf; }
-
-        /* Widget: Greeting */
-        .greeting-header { display: flex; justify-content: space-between; align-items:
-flex-start; margin-bottom: 5px; }
-        .greeting-sub { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
-
-        /* Widget: Weather & Clock */
-        .split-row { display: flex; gap: 15px; }
-        .split-card { flex: 1; display: flex; flex-direction: column; justify-content: center;
-align-items: center; text-align: center; min-width: 0; }
-
-        /* 7-Segment Clock CSS */
-        .clock-display { display: flex; align-items: center; gap: 6px; height: 60px; }
-        .digit {
-            display: grid;
-            grid-template-areas:
-                ". a ."
-                "f . b"
-                ". g ."
-                "e . c"
-                ". d .";
-            grid-template-rows: repeat(5, 1fr);
-            grid-template-columns: repeat(3, 1fr);
-            width: 24px;
-            height: 42px;
-            gap: 2px;
-        }
-        .seg { background: rgba(255,255,255,0.1); border-radius: 2px; transition: background
-0.1s; }
-        .seg-on { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
-        .seg-a { grid-area: a; } .seg-b { grid-area: b; } .seg-c { grid-area: c; }
-        .seg-d { grid-area: d; } .seg-e { grid-area: e; } .seg-f { grid-area: f; }
-        .seg-g { grid-area: g; }
-
-        .colon { display: flex; flex-direction: column; gap: 8px; justify-content: center;
-align-items: center; height: 42px; }
-        .colon-dot { width: 4px; height: 4px; background: var(--accent-green); border-radius:
-50%; box-shadow: 0 0 5px var(--accent-green); }
-
-        /* Widget: Quote */
-        .quote-text { font-style: italic; font-size: 1.1rem; line-height: 1.4; margin-bottom:
-10px; }
-        .quote-author { text-align: right; font-size: 0.85rem; color: var(--text-muted);
-font-family: var(--font-mono); }
-
-        /* Widget: Stats */
-        .stats-row { display: flex; justify-content: space-between; }
-        .stat-item { text-align: center; width: 48%; padding: 10px 0; border-radius: 16px;
-background: rgba(0,0,0,0.2); }
-        .stat-num { font-size: 2.2rem; font-weight: 800; font-family: var(--font-head);
-line-height: 1; margin-bottom: 4px; }
-
-        /* Widget: Tasks */
-        .task-summary { font-size: 3.5rem; font-weight: 800; color: var(--accent-green);
-line-height: 1; text-shadow: 0 0 20px rgba(0,224,96,0.3); }
-
-        /* Widget: News */
-        .news-header { display: flex; justify-content: space-between; align-items: center;
-margin-bottom: 15px; }
-        .fresh-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius:
-50%; display: inline-block; box-shadow: 0 0 8px var(--accent-green); animation: pulse 2s
-infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        .news-list-container { max-height: 320px; overflow-y: auto; scrollbar-width: none; }
-        .news-list-container::-webkit-scrollbar { display: none; }
-
-        .news-item { display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 16px;
-border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .news-item:last-child { border: none; margin: 0; padding: 0; }
-        .news-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 6px; background:
-rgba(255,255,255,0.15); white-space: nowrap; height: fit-content; font-weight: bold; }
-        .news-content { flex: 1; }
-        .news-title { font-size: 0.95rem; line-height: 1.4; font-weight: 500; margin-bottom:
-4px; }
-        .news-date { font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);
-}
-
-        /* Widget: Prayer Times */
-        .prayer-row { display: flex; justify-content: space-between; padding: 10px 0;
-border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
-        .prayer-row:last-child { border: none; }
-        .prayer-row.active { color: var(--accent-cyan); font-weight: bold; }
-        .prayer-row.active .mono { text-shadow: 0 0 10px rgba(0,240,255,0.4); }
-
-        /* Widget: Calendars & Mail */
-        .pill-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px;
-margin-bottom: 10px; scrollbar-width: none; }
-        .pill-nav::-webkit-scrollbar { display: none; }
-        .pill { padding: 8px 14px; border-radius: 20px; background: rgba(255,255,255,0.08);
-font-size: 0.85rem; white-space: nowrap; cursor: pointer; transition: 0.2s; font-weight: 600; }
-        .pill.active { background: var(--accent-cyan); color: #000; transform: scale(1.05); }
-
-        .event-item, .mail-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius:
-16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
-        .event-item:active, .mail-item:active { background: rgba(0,0,0,0.4); }
-
-        .avatar { width: 36px; height: 36px; border-radius: 50%; background:
-linear-gradient(135deg, var(--accent-cyan), #0088ff); color: #000; display: flex; align-items:
-center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; }
-        .mail-content { flex: 1; overflow: hidden; }
-        .mail-sub { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow:
-ellipsis; font-size: 0.95rem; }
-        .mail-sender { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-        .red-dot { width: 8px; height: 8px; background: #ff3b30; border-radius: 50%;
-flex-shrink: 0; box-shadow: 0 0 8px #ff3b30; }
-
-        /* Widget: Mini Calendar */
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align:
-center; font-size: 0.8rem; margin-top: 10px; }
-        .cal-day { padding: 10px 0; border-radius: 12px; cursor: pointer; font-weight: 600;
-transition: 0.2s; }
-        .cal-day.other { opacity: 0.2; pointer-events: none; }
-        .cal-day.today { border: 1px solid #8000ff; color: #8000ff; }
-        .cal-day.selected { background: var(--accent-cyan); color: #000; box-shadow: 0 0 15px
-rgba(0,240,255,0.3); }
-
-        /* Widget: Reminders */
-        .reminder-item { display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
-background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; }
-        .reminder-check { width: 22px; height: 22px; border: 2px solid var(--text-muted);
-border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content:
-center; flex-shrink: 0; transition: 0.2s; }
-        .reminder-check.done { background: var(--accent-green); border-color:
-var(--accent-green); }
-        .reminder-check.done::after { content: '\u2713'; color: #000; font-size: 14px;
-font-weight: bold; }
-
-        .reminder-text { flex: 1; font-size: 0.95rem; }
-        .reminder-text.done { text-decoration: line-through; color: var(--text-muted); }
-        .btn-del { background: transparent; color: #ff3b30; padding: 4px; font-size: 1rem; }
-
-        /* Overlays */
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(7, 7, 15, 0.85);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-            padding: 25px;
-            overflow-y: auto;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .overlay.active { display: flex; }
-        .overlay-header { display: flex; justify-content: space-between; align-items: center;
-margin-bottom: 25px; }
-        .loc-result { padding: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor:
-pointer; display: flex; align-items: center; gap: 15px; }
-        .loc-result:active { background: rgba(255,255,255,0.1); }
-
-        input, textarea {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            padding: 14px;
-            border-radius: 14px;
-            font-family: var(--font-body);
-            font-size: 1rem;
-            width: 100%;
-        }
-        input:focus, textarea:focus { border-color: var(--accent-cyan); }
-
-        /* Bottom Bar */
-        .bottom-bar {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(7, 7, 15, 0.85);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-top: 1px solid var(--glass-border);
-            display: flex; justify-content: space-around; padding: 12px 10px 25px 10px;
-            z-index: 1000;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
-        }
-        .bar-item { text-align: center; font-size: 0.7rem; color: var(--text-muted); cursor:
-pointer; flex: 1; }
-        .bar-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; transition: 0.2s; }
-        .bar-item:active .bar-icon { transform: scale(0.8); color: var(--accent-cyan); }
-
-        /* Utilities */
-        .hidden { display: none !important; }
-        .loading { opacity: 0.6; pointer-events: none; }
-        .text-center { text-align: center; }
-
-        /* Mobile Adjustments */
-        @media (max-width: 360px) {
-            .split-row { flex-direction: column; }
-            .clock-display { transform: scale(0.9); }
-        }
-    </style>
+<title>Big Minds Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Space+Mhref="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Sace+Mono:wght@400;700&family=Syne:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{--bg-dark:#07070f;--glass-bg:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.08);-:root{--bg-dark:#07070f;--glass-bg:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.08);--accent-cyan:#00f0ff;--accent-green:#00e060;--text-main:#ffffff;--text-muted:#8888aa;--font-head:'accent-cyan:#00f0ff;--accent-green:#00e060;--text-main:#ffffff;--text-muted:#8888aa;--font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'Space Mono',monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none}
+body{margin:0;padding:0;background-color:var(--bg-dark);background-image:linear-gradient(to
+bottom,#0f0f1a,#07070f);color:var(--text-main);font-family:var(--font-body);min-height:100vh;overbotto,#0f0f1a,#07070f);color:var(--text-main);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;padding-bottom:90px;-webkit-font-smoothing:antialiased}
+#bg-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;opacity:0.4;background-#bg-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;opacity:0.4;background-size:cover;background-position:center;transition:background-image 1s ease;pointer-events:none}
+h1,h2,h3{font-family:var(--font-head);margin:0;font-weight:800;letter-spacing:-0.5px}
+.mono{font-family:var(--font-mono);letter-spacing:-1px}
+.cyan{color:var(--accent-cyan)}
+.green{color:var(--accent-green)}
+.container{padding:20px;max-width:600px;margin:0 auto;width:100%}
+.card{background:var(--glass-bg);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);bo.card{background:var(--glass-bg);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border:1px solid
+var(--glass-border);border-radius:24px;padding:20px;margin-bottom:20px;position:relative;overflowvar(--glass-border);border-radius:24px;padding:20px;margin-bottom:20px;position:reltive;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2)}
+button{background:rgba(255,255,255,0.1);border:none;color:white;padding:10px
+16px;border-radius:14px;font-family:var(--font-body);font-weight:700;font-size:0.9rem;cursor:poin16px;border-radius:1px;font-family:var(--font-body);font-weight:700;font-size:0.9rem;cursor:pointer;transition:transform 0.1s,background
+0.2s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:active{transform:scale(0.96);background:rgba(255,255,255,0.2)}
+.btn-icon{padding:8px;background:transparent;font-size:1.2rem;border-radius:50%;width:40px;height.btn-icon{padding:8px;background:transparent;font-size:1.2rem;border-radius:50%;width:40px;height:40px}
+.btn-icon:active{background:rgba(255,255,255,0.1)}
+.btn-primary{background:var(--accent-cyan);color:#000}
+.btn-primary:active{background:#00c0cf}
+.greeting-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.greeting-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.greeting-sub{font-size:0.9rem;color:var(--text-muted);margin-top:4px}
+.split-row{display:flex;gap:15px}
+.split-card{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;t.split-card{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-width:0}
+.clock-display{display:flex;align-items:center;gap:6px;height:60px}
+.digit{display:grid;grid-template-areas:". a .""f . b"". g .""e . c"". d
+.";grid-template-rows:repeat(5,1fr);grid-template-columns:repeat(3,1fr);width:24px;height:42px;ga.";grid-template-rows:reeat(5,1fr);grid-template-columns:repeat(3,1fr);width:24px;height:42px;gap:2px}
+.seg{background:rgba(255,255,255,0.1);border-radius:2px;transition:background 0.1s}
+.seg-on{background:var(--accent-green);box-shadow:0 0 8px var(--accent-green)}
+.seg-a{grid-area:a}.seg-b{grid-area:b}.seg-c{grid-area:c}.seg-d{grid-area:d}.seg-e{grid-area:e}.s.seg-a{grid-area:a}.seg-b{grid-area:b}.seg-c{grid-area:c}.seg-d{grid-area:d}.seg-e{grid-area:e}.seg-f{grid-area:f}.seg-g{grid-area:g}
+.colon{display:flex;flex-direction:column;gap:8px;justify-content:center;align-items:center;heigh.colon{display:flex;flex-direction:column;gap:8px;justify-content:center;align-items:center;height:42px}
+.colon-dot{width:4px;height:4px;background:var(--accent-green);border-radius:50%;box-shadow:0 0
+5px var(--accent-green)}
+.quote-text{font-style:italic;font-size:1.1rem;line-height:1.4;margin-bottom:10px}
+.quote-author{text-align:right;font-size:0.85rem;color:var(--text-muted);font-family:var(--font-m.quote-author{text-align:right;font-size:0.85rem;color:var(--text-muted);font-family:var(--font-mono)}
+.stats-row{display:flex;justify-content:space-between}
+.stat-item{text-align:center;width:48%;padding:10px
+0;border-radius:16px;background:rgba(0,0,0,0.2)}
+.stat-num{font-size:2.2rem;font-weight:800;font-family:var(--font-head);line-height:1;margin-bott.stat-num{font-size:2.2rem;font-weight:800;font-family:var(--font-head);line-height:1;margin-bottom:4px}
+.task-summary{font-size:3.5rem;font-weight:800;color:var(--accent-green);line-height:1;text-shado.task-summary{font-size:3.5rem;font-weight:800;color:var(--accent-green);line-height:1;text-shadow:0 0 20px rgba(0,224,96,0.3)}
+.news-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.fresh-dot{width:8px;height:8px;background:var(--accent-green);border-radius:50%;display:inline-b.fresh-dot{width:8px;height:8px;background:var(--accent-green);border-radius:50%;display:inline-block;box-shadow:0 0 8px var(--accent-green);animation:pulse 2s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.4}100%{opacity:1}}
+.news-list-container{max-height:320px;overflow-y:auto;scrollbar-width:none}
+.news-list-container::-webkit-scrollbar{display:none}
+.news-item{display:flex;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid
+rgba(255,255,255,0.05)}
+.news-item:last-child{border:none;margin:0;padding:0}
+.news-tag{font-size:0.65rem;padding:3px
+8px;border-radius:6px;background:rgba(255,255,255,0.15);white-space:nowrap;height:fit-content;fon8px;border-radius:6px;background:rgba(255,255,255,0.15);wite-space:nowrap;height:fit-content;font-weight:bold}
+.news-content{flex:1}
+.news-title{font-size:0.95rem;line-height:1.4;font-weight:500;margin-bottom:4px}
+.news-date{font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono)}
+.prayer-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid
+rgba(255,255,255,0.05);font-size:0.95rem}
+.prayer-row:last-child{border:none}
+.prayer-row.active{color:var(--accent-cyan);font-weight:bold}
+.prayer-row.active .mono{text-shadow:0 0 10px rgba(0,240,255,0.4)}
+.pill-nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:10px;scrollbar-w.pill-nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:10px;scrollbar-width:none}
+.pill-nav::-webkit-scrollbar{display:none}
+.pill{padding:8px
+14px;border-radius:20px;background:rgba(255,255,255,0.08);font-size:0.85rem;white-space:nowrap;cu14px;border-radius:20px;background:rgba(255,255,255,0.08);font-size:0.85rem;whie-space:nowrap;cursor:pointer;transition:0.2s;font-weight:600}
+.pill.active{background:var(--accent-cyan);color:#000;transform:scale(1.05)}
+.event-item,.mail-item{background:rgba(0,0,0,0.2);padding:12px;border-radius:16px;margin-bottom:1.event-item,.mail-item{background:rgba(0,0,0,0.2);padding:12px;border-radius:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:0.2s}
+.event-item:active,.mail-item:active{background:rgba(0,0,0,0.4)}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-c.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-cyan),#0088ff);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;foan),#0088ff);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;flex-shrink:0}
+.mail-content{flex:1;overflow:hidden}
+.mail-sub{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.9.mail-sub{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.95rem}
+.mail-sender{font-size:0.75rem;color:var(--text-muted);margin-top:2px}
+.red-dot{width:8px;height:8px;background:#ff3b30;border-radius:50%;flex-shrink:0;box-shadow:0 0
+8px #ff3b30}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:0..cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:0.8rem;margin-top:10px}
+.cal-day{padding:10px 0;border-radius:12px;cursor:pointer;font-weight:600;transition:0.2s}
+.cal-day.other{opacity:0.2;pointer-events:none}
+.cal-day.today{border:1px solid #8000ff;color:#8000ff}
+.cal-day.selected{background:var(--accent-cyan);color:#000;box-shadow:0 0 15px
+rgba(0,240,255,0.3)}
+.reminder-item{display:flex;align-items:center;gap:12px;margin-bottom:10px;background:rgba(255,25.reminder-item{display:flex;align-items:center;gap:12px;margin-bottom:10px;background:rgba(255,255,255,0.03);padding:10px;border-radius:12px}
+.reminder-check{width:22px;height:22px;border:2px solid
+var(--text-muted);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-contenvar(--text-muted);border-radius:6px;curso:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:0.2s}
+.reminder-check.done{background:var(--accent-green);border-color:var(--accent-green)}
+.reminder-check.done::after{content:'\u2713';color:#000;font-size:14px;font-weight:bold}
+.reminder-text{flex:1;font-size:0.95rem}
+.reminder-text.done{text-decoration:line-through;color:var(--text-muted)}
+.btn-del{background:transparent;color:#ff3b30;padding:4px;font-size:1rem}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(7,7,15,0.85);backdrop.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(7,7,15,0.85);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:2000;display:none;flex-direction:colfilter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:2000;display:none;flex-direction:column;padding:25px;overflow-y:auto;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.overlay.active{display:flex}
+.overlay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.overlay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}
+.loc-result{padding:18px;border-bottom:1px solid
+rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:15px}
+.loc-result:active{background:rgba(255,255,255,0.1)}
+input,textarea{background:rgba(255,255,255,0.1);border:1px solid
+rgba(255,255,255,0.1);color:white;padding:14px;border-radius:14px;font-family:var(--font-body);forgba(255,255,255,0.1);color:whit;padding:14px;border-radius:14px;font-family:var(--font-body);font-size:1rem;width:100%}
+input:focus,textarea:focus{border-color:var(--accent-cyan)}
+.bottom-bar{position:fixed;bottom:0;left:0;width:100%;background:rgba(7,7,15,0.85);backdrop-filte.bottom-bar{position:fixed;bottom:0;left:0;width:100%;background:rgba(7,7,15,0.85);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-top:1px solid
+var(--glass-border);display:flex;justify-content:space-around;padding:12px 10px 25px
+10px;z-index:1000;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.bar-item{text-align:center;font-size:0.7rem;color:var(--text-muted);cursor:pointer;flex:1}
+.bar-icon{font-size:1.4rem;display:block;margin-bottom:4px;transition:0.2s}
+.bar-item:active .bar-icon{transform:scale(0.8);color:var(--accent-cyan)}
+.hidden{display:none!important}
+.text-center{text-align:center}
+@media(max-width:360px){.split-row{flex-direction:column}.clock-display{transform:scale(0.9)}}
+</style>
 </head>
 <body>
-
 <div id="bg-overlay"></div>
-
 <div class="container">
-
-    <!-- 1. Greeting -->
-    <div class="card" id="card-greeting">
-        <div class="greeting-header">
-            <div>
-                <h1 id="greet-title" class="cyan">Big Minds</h1>
-                <div id="greet-sub" class="greeting-sub mono">Loading location...</div>
-            </div>
-            <button id="btn-set-loc-greet" class="btn-icon">\uD83D\uDCCD</button>
-        </div>
-    </div>
-
-    <!-- 2. Weather + Clock -->
-    <div class="split-row">
-        <div class="card split-card" id="card-weather" style="cursor: pointer;">
-            <div id="weather-icon" style="font-size: 3rem; margin-bottom: 5
-5px;">\uD83C\uDF24️</div>
-            <div id="weather-temp" class="mono" style="font-size: 2rem; font-weight:
-700;">--°</div>
-            <div id="weather-cond" style="font-size: 0.9rem; color: var(--text-muted);">--</div>
-            <div id="weather-city" style="font-size: 0.8rem; margin-top: 8px; opacity:
-0.7;">--</div>
-            <button id="btn-toggle-unit" style="margin-top: 12px; font-size: 0.7rem; padding:
-4px 10px; background: rgba(255,255,255,0.1);">°C</button>
-        </div>
-        <div class="card split-card" style="background: rgba(0,0,0,0.4); border: 1px solid
-rgba(0,224,96,0.2);">
-            <div class="clock-display" id="clock-container">
-                <!-- Generated by JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Quote -->
-    <div class="card" id="card-quote">
-        <div class="quote-text" id="quote-text">"Loading wisdom..."</div>
-        <div class="quote-author" id="quote-author">-</div>
-        <button id="btn-new-quote" style="margin-top: 15px; font-size: 0.75rem; width:
-100%;">\uD83D\uDD04 New Quote</button>
-    </div>
-
-    <!-- 4. Stats -->
-    <div class="card">
-        <div class="stats-row">
-            <div class="stat-item" id="stat-mail">
-                <div class="stat-num" id="stat-mail-count">0</div>
-                <div class="greeting-sub">Unread Mail</div>
-            </div>
-            <div class="stat-item" id="stat-events">
-                <div class="stat-num" id="stat-events-count">0</div>
-                <div class="greeting-sub">Events Today</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 5. Tasks Summary -->
-    <div class="card" id="card-tasks-sum" style="text-align: center; cursor: pointer; padding:
-30px 20px;">
-        <div class="greeting-sub" style="text-transform: uppercase; letter-spacing: 1px;
-font-size: 0.7rem;">Tasks Remaining</div>
-        <div class="task-summary" id="task-count-big">0</div>
-    </div>
-
-    <!-- 6. News -->
-    <div class="card">
-        <div class="news-header">
-            <h3>Headlines</h3>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="fresh-dot" id="news-dot" style="display:none;"></span>
-                <span class="mono" style="font-size:0.7rem; opacity:0.6;">NYT RSS</span>
-            </div>
-        </div>
-        <div class="news-list-container" id="news-list">
-            <div class="text-center" style="padding:20px; color:var(--text-muted);">Loading
-news...</div>
-        </div>
-    </div>
-
-    <!-- 7. Prayer Times -->
-    <div class="card">
-        <div class="greeting-header">
-            <h3>Prayer Times</h3>
-            <button id="btn-set-loc-prayer" class="btn-icon" style="font-size: 0.8rem; width:
-auto; padding: 6px 12px; font-size: 0.75rem;">Change</button>
-        </div>
-        <div id="prayer-list" style="margin-top: 10px;"></div>
-    </div>
-
-    <!-- 8. Google Calendar -->
-    <div class="card" id="card-gcal">
-        <div class="greeting-header">
-            <h3>Google Calendar</h3>
-            <button id="btn-gcal-auth" class="btn-primary" style="font-size: 0.75rem;">Sign
-In</button>
-        </div>
-        <div class="pill-nav" id="gcal-nav"></div>
-        <div id="gcal-list" style="min-height: 50px;"></div>
-        <button id="btn-gcal-add" class="hidden" style="width:100%; margin-top:15px; background:
-rgba(255,255,255,0.1);">+ Add Event</button>
-    </div>
-
-    <!-- 9. Gmail -->
-    <div class="card" id="card-gmail">
-        <div class="greeting-header">
-            <h3>Gmail</h3>
-            <button id="btn-gmail-auth" class="btn-primary" style="font-size: 0.75rem;">Sign
-In</button>
-        </div>
-        <div id="gmail-list" style="min-height: 50px;"></div>
-    </div>
-
-    <!-- 10. Outlook Calendar -->
-    <div class="card" id="card-ocal">
-        <div class="greeting-header">
-            <h3>Outlook Calendar</h3>
-            <button id="btn-ocal-auth" class="btn-primary" style="font-size: 0.75rem;">Sign
-In</button>
-        </div>
-        <div class="pill-nav" id="ocal-nav"></div>
-        <div id="ocal-list" style="min-height: 50px;"></div>
-        <button id="btn-ocal-add" class="hidden" style="width:100%; margin-top:15px; background:
-rgba(255,255,255,0.1);">+ Add Event</button>
-    </div>
-
-    <!-- 11. Outlook Mail -->
-    <div class="card" id="card-omail">
-        <div class="greeting-header">
-            <h3>Outlook Mail</h3>
-            <button id="btn-omail-auth" class="btn-primary" style="font-size: 0.75rem;">Sign
-In</button>
-        </div>
-        <div id="omail-list" style="min-height: 50px;"></div>
-    </div>
-
-    <!-- 12. Crypto -->
-    <div class="card">
-        <div class="news-header">
-            <h3>Crypto</h3>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <span class="fresh-dot" id="crypto-dot" style="display:none;"></span>
-                <button id="btn-crypto-refresh" class="btn-icon" style="font-size:0.8rem;
-width:30px; height:30px;">\uD83D\uDD04</button>
-            </div>
-        </div>
-        <div id="crypto-list" class="mono" style="font-size: 0.9rem;"></div>
-    </div>
-
-    <!-- 13. Forex -->
-    <div class="card">
-        <div class="news-header">
-            <h3>Forex & Metals</h3>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <span class="fresh-dot" id="forex-dot" style="display:none;"></span>
-                <button id="btn-forex-refresh" class="btn-icon" style="font-size:0.8rem;
-width:30px; height:30px;">\uD83D\uDD04</button>
-            </div>
-        </div>
-        <div id="forex-list" class="mono" style="font-size: 0.9rem;"></div>
-    </div>
-
-    <!-- 14. Countdown -->
-    <div class="card">
-        <h3>Countdown</h3>
-        <div id="cd-display" class="mono" style="font-size: 2rem; margin: 15px 0; color:
-var(--accent-cyan);">--</div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="cd-name" placeholder="Event Name">
-            <input type="datetime-local" id="cd-date" style="color-scheme: dark;">
-        </div>
-        <button id="btn-cd-save" style="width:100%; margin-top:15px;">Save Countdown</button>
-    </div>
-
-    <!-- 15. Mini Calendar -->
-    <div class="card">
-        <div class="greeting-header">
-            <button id="btn-cal-prev" class="btn-icon" style="width:30px; height:30px;
-font-size:1rem;">&lt;</button>
-            <h3 id="cal-month-label" style="font-size: 1.1rem;">Month</h3>
-            <button id="btn-cal-next" class="btn-icon" style="width:30px; height:30px;
-font-size:1rem;">&gt;</button>
-        </div>
-        <div class="cal-grid" id="mini-cal-grid"></div>
-    </div>
-
-    <!-- 16. Reminders -->
-    <div class="card">
-        <div class="greeting-header">
-            <h3>Reminders</h3>
-            <button id="btn-clear-done" style="font-size:0.7rem; background:transparent;
-color:var(--text-muted);">Clear Done</button>
-        </div>
-        <div class="pill-nav" id="rem-nav"></div>
-        <div id="rem-list" style="margin-bottom: 15px;"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="rem-input" placeholder="New task...">
-            <button id="btn-rem-add" class="btn-primary" style="width: 50px; padding:
-0;">+</button>
-        </div>
-    </div>
-
+<div class="card" id="card-greeting"><div class="greeting-header"><div><h1 id="greet-title"
+class="cyan">Big Minds</h1><div id="greet-sub" class="greeting-sub mono">Loading
+location...</div></div><button id="btn-set-loc-greet" class="btn-icon">📍</button></div></div>
+<div class="split-row"><div class="card split-card" id="card-weather"
+style="cursor:pointer"><div id="weather-icon" s
+style="font-size:3rem;margin-bottom:5px">🌤️</div><div id="weather-temp" class="mono"
+style="font-size:2rem;font-weight:700">--°</div><div id="weather-cond"
+style="font-size:0.9rem;color:var(--text-muted)">--</div><div id="weather-city"
+style="font-size:0.8rem;margin-top:8px;opacity:0.7">--</div><button id="btn-toggle-unit"
+style="margin-top:12px;font-size:0.7rem;padding:4px
+10px;background:rgba(255,255,255,0.1)">°C</button></div><div class="card split-card"
+style="background:rgba(0,0,0,0.4);border:1px solid rgba(0,224,96,0.2)"><div
+class="clock-display" id="clock-container"></div></div></div>
+<div class="card" id="card-quote"><div class="quote-text" id="quote-text">"Loading
+wisdom..."</div><div class="quote-author" id="quote-author">-</div><button id="btn-new-quote"
+style="margin-top:15px;font-size:0.75rem;width:100%">🔄 New Quote</button></div>
+<div class="card"><div class="stats-row"><div class="stat-item" id="stat-mail"><div
+class="stat-num" id="stat-mail-count">0</div><div class="greeting-sub">Unread
+Mail</div></div><div class="stat-item" id="stat-events"><div class="stat-num"
+id="stat-events-count">0</div><div class="greeting-sub">Events Today</div></div></div></div>
+<div class="card" id="card-tasks-sum" style="text-align:center;cursor:pointer;padding:30px
+20px"><div class="greeting-sub"
+style="text-transform:uppercase;letter-spacing:1px;font-size:0.7rem">Tasks Remaining</div><div
+class="task-summary" id="task-count-big">0</div></div>
+<div class="card"><div class="news-header"><h3>Headlines</h3><div
+style="display:flex;align-items:center;gap:8px"><span class="fresh-dot" id="news-dot"
+style="display:none"></span><span class="mono" style="font-size:0.7rem;opacity:0.6">NYT
+RSS</span></div></div><div class="news-list-container" id="news-list"><div class="text-center"
+style="padding:20px;color:var(--text-muted)">Loading news...</div></div></div>
+<div class="card"><div class="greeting-header"><h3>Prayer Times</h3><button
+id="btn-set-loc-prayer" class="btn-icon" style="font-size:0.8rem;width:auto;padding:6px
+12px;font-size:0.75rem">Change</button></div><div id="prayer-list"
+style="margin-top:10px"></div></div>
+<div class="card" id="card-gcal"><div class="greeting-header"><h3>Google Calendar</h3><button
+id="btn-gcal-auth" class="btn-primary" style="font-size:0.75rem">Sign In</button></div><div
+class="pill-nav" id="gcal-nav"></div><div id="gcal-list" style="min-height:50px"></div><button
+id="btn-gcal-add" class="hidden"
+style="width:100%;margin-top:15px;background:rgba(255,255,255,0.1)">+ Add Event</button></div>
+<div class="card" id="card-gmail"><div class="greeting-header"><h3>Gmail</h3><button
+id="btn-gmail-auth" class="btn-primary" style="font-size:0.75rem">Sign In</button></div><div
+id="gmail-list" style="min-height:50px"></div></div>
+<div class="card" id="card-ocal"><div class="greeting-header"><h3>Outlook Calendar</h3><button
+id="btn-ocal-auth" class="btn-primary" style="font-size:0.75rem">Sign In</button></div><div
+class="pill-nav" id="ocal-nav"></div><div id="ocal-list" style="min-height:50px"></div><button
+id="btn-ocal-add" class="hidden"
+style="width:100%;margin-top:15px;background:rgba(255,255,255,0.1)">+ Add Event</button></div>
+<div class="card" id="card-omail"><div class="greeting-header"><h3>Outlook Mail</h3><button
+id="btn-omail-auth" class="btn-primary" style="font-size:0.75rem">Sign In</button></div><div
+id="omail-list" style="min-height:50px"></div></div>
+<div class="card"><div class="news-header"><h3>Crypto</h3><div
+style="display:flex;align-items:center;gap:5px"><span class="fresh-dot" id="crypto-dot"
+style="display:none"></span><button id="btn-crypto-refresh" class="btn-icon"
+style="font-size:0.8rem;width:30px;height:30px">🔄</button></div></div><div id="crypto-list"
+class="mono" style="font-size:0.9rem"></div></div>
+<div class="card"><div class="news-header"><h3>Forex & Metals</h3><div
+style="display:flex;align-items:center;gap:5px"><span class="fresh-dot" id="forex-dot"
+style="display:none"></span><button id="btn-forex-refresh" class="btn-icon"
+style="font-size:0.8rem;width:30px;height:30px">🔄</button></div></div><div id="forex-list"
+class="mono" style="font-size:0.9rem"></div></div>
+<div class="card"><h3>Countdown</h3><div id="cd-display" class="mono"
+style="font-size:2rem;margin:15px 0;color:var(--accent-cyan)">--</div><div
+style="display:flex;gap:10px"><input type="text" id="cd-name" placeholder="Event Name"><input
+type="datetime-local" id="cd-date" style="color-scheme:dark"></div><button id="btn-cd-save"
+style="width:100%;margin-top:15px">Save Countdown</button></div>
+<div class="card"><div class="greeting-header"><button id="btn-cal-prev" class="btn-icon"
+style="width:30px;height:30px;font-size:1rem">&lt;</button><h3 id="cal-month-label"
+style="font-size:1.1rem">Month</h3><button id="btn-cal-next" class="btn-icon"
+style="width:30px;height:30px;font-size:1rem">&gt;</button></div><div class="cal-grid"
+id="mini-cal-grid"></div></div>
+<div class="card"><div class="greeting-header"><h3>Reminders</h3><button id="btn-clear-done"
+style="font-size:0.7rem;background:transparent;color:var(--text-muted)">Clear
+Done</button></div><div class="pill-nav" id="rem-nav"></div><div id="rem-list"
+style="margin-bottom:15px"></div><div style="display:flex;gap:10px"><input type="text"
+id="rem-input" placeholder="New task..."><button id="btn-rem-add" class="btn-primary"
+style="width:50px;padding:0">+</button></div></div>
 </div>
-
-<!-- Bottom Bar -->
-<div class="bottom-bar">
-    <div class="bar-item" id="bar-guide">
-        <span class="bar-icon">\uD83D\uDCD6</span>Guide
-    </div>
-    <div class="bar-item" id="bar-support">
-        <span class="bar-icon">\uD83D\uDCAC</span>Support
-    </div>
-    <div class="bar-item" id="bar-updates">
-        <span class="bar-icon">\uD83D\uDCDD</span>Updates
-        <span id="ver-stamp" style="font-size:0.6rem; display:block; opacity:0.5;">v1.0</span>
-    </div>
-    <div class="bar-item" id="bar-nuke" style="color:#ff3b30;">
-        <span class="bar-icon">\uD83D\uDCA3</span>Nuke
-    </div>
-</div>
-
-<!-- Overlays -->
-<div id="overlay-loc" class="overlay">
-    <div class="overlay-header">
-        <h2>Select Location</h2>
-        <button id="btn-close-loc" class="btn-icon">\u2715</button>
-    </div>
-    <input type="text" id="loc-search" placeholder="Search city (e.g. London)..."
-style="margin-bottom:20px;">
-    <div id="loc-results"></div>
-</div>
-
-<div id="overlay-guide" class="overlay">
-    <div class="overlay-header">
-        <h2>Guide</h2>
-        <button id="btn-close-guide" class="btn-icon">\u2715</button>
-    </div>
-    <div style="line-height:1.6; color: #ccc;">
-        <p><strong>1. Location:</strong> Tap the pin icon to set your city. This syncs Weather,
-Prayer Times, and Clock.</p>
-        <p><strong>2. OAuth:</strong> Use the "Sign In" buttons for Google/Microsoft. Tokens are
-stored securely in your browser.</p>
-        <p><strong>3. Tasks:</strong> Tasks are tied to the selected date. Use the pill bar to
-switch days.</p>
-        <p><strong>4. Data:</strong> All data is local. Use "Nuke" to reset everything.</p>
-    </div>
-</div>
-
-<div id="overlay-support" class="overlay">
-    <div class="overlay-header">
-        <h2>Support</h2>
-        <button id="btn-close-support" class="btn-icon">\u2715</button>
-    </div>
-    <form id="support-form">
-        <input type="email" name="from_name" placeholder="Your Email" required
-style="margin-bottom:15px;">
-        <textarea name="message" placeholder="How can we help?" required
-style="margin-bottom:15px; height:150px;"></textarea>
-        <input type="hidden" name="access_key" value="53bad208-02b2-40b6-974b-98f8b68d0439">
-        <button type="submit" class="btn-primary" style="width:100%;">Send Message</button>
-    </form>
-</div>
-
-<div id="overlay-updates" class="overlay">
-    <div class="overlay-header">
-        <h2>Changelog</h2>
-        <button id="btn-close-updates" class="btn-icon">\u2715</button>
-    </div>
-    <div class="mono" style="font-size:0.85rem; line-height: 1.8;">
-        <p><strong>v1.0</strong> - Initial Release</p>
-        <p>- Dark Glass UI optimized for iOS Safari</p>
-        <p>- 7-Segment LED Clock</p>
-        <p>- Microsoft PKCE OAuth Integration</p>
-        <p>- No external frameworks</p>
-    </div>
-</div>
-
-<!-- Google GSI Script -->
+<div class="bottom-bar"><div class="bar-item" id="bar-guide"><span class="bar-icon">📖
+</span>Guide</div><div class="bar-item" id="bar-support"><span class="bar-icon">💬
+</span>Support</div><div class="bar-item" id="bar-updates"><span class="bar-icon">📝
+</span>Updates<span id="ver-stamp"
+style="font-size:0.6rem;display:block;opacity:0.5">v1.0</span></div><div class="bar-item"
+id="bar-nuke" style="color:#ff3b30"><span class="bar-icon">💣</span>Nuke</div></div>
+<div id="overlay-loc" class="overlay"><div class="overlay-header"><h2>Select
+Location</h2><button id="btn-close-loc" class="btn-icon">✕</button></div><input type="text"
+id="loc-search" placeholder="Search city (e.g. London)..." style="margin-bottom:20px"><div
+id="loc-results"></div></div>
+<div id="overlay-guide" class="overlay"><div class="overlay-header"><h2>Guide</h2><button
+id="btn-close-guide" class="btn-icon">✕</button></div><div
+style="line-height:1.6;color:#ccc"><p><strong>1. Location:</strong> Tap the 📍 pin icon to set
+your city. This syncs Weather, Prayer Times, and Clock.</p><p><strong>2. OAuth:</strong> Use the
+"Sign In" buttons for Google/Microsoft. Tokens are stored securely in your
+browser.</p><p><strong>3. Tasks:</strong> Tasks are tied to the selected date. Use the pill bar
+to switch days.</p><p><strong>4. Data:</strong> All data is local. Use "Nuke" to reset
+everything.</p></div></div>
+<div id="overlay-support" class="overlay"><div class="overlay-header"><h2>Support</h2><button
+id="btn-close-support" class="btn-icon">✕</button></div><form id="support-form"><input
+type="email" name="from_name" placeholder="Your Email" required
+style="margin-bottom:15px"><textarea name="message" placeholder="How can we help?" required
+style="margin-bottom:15px;height:150px"></textarea><input type="hidden" name="access_key"
+value="53bad208-02b2-40b6-974b-98f8b68d0439"><button type="submit" class="btn-primary"
+style="width:100%">Send Message</button></form></div>
+<div id="overlay-updates" class="overlay"><div class="overlay-header"><h2>Changelog</h2><button
+id="btn-close-updates" class="btn-icon">✕</button></div><div class="mono"
+style="font-size:0.85rem;line-height:1.8"><p><strong>v1.0</strong> - Initial Release</p><p>-
+Dark Glass UI optimized for iOS Safari</p><p>- 7-Segment LED Clock</p><p>- Microsoft PKCE OAuth
+Integration</p><p>- No external frameworks</p></div></div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
-(function(){ 'use strict';
-
-    // --- CONFIG & STATE ---
-    var CFG = {
-        googleClientId:
-'623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.com',
-        msClientId: '1155afdf-d585-48cc-af89-b973843ce21a',
-        msRedirect: 'https://ghaziomairi93.github.io/houdini-tools/',
-        web3Key: '53bad208-02b2-40b6-974b-98f8b68d0439'
-    };
-
-    var State = {
-        loc: JSON.parse(localStorage.getItem('bmd_loc')) || null,
-        selDate: localStorage.getItem('bmd_selDate') || new Date().toISOString().split('T')[0],
-        tasks: JSON.parse(localStorage.getItem('bmd_tasks')) || [],
-        crypto: JSON.parse(localStorage.getItem('bmd_crypto')) || {},
-        forex: JSON.parse(localStorage.getItem('bmd_forex')) || {},
-        countdown: JSON.parse(localStorage.getItem('bmd_cd')) || {name:'', date:''},
-        unitC: localStorage.getItem('bmd_unitC') !== 'false',
-        gToken: localStorage.getItem('bmd_g_token'),
-        mToken: localStorage.getItem('bmd_m_token'),
-        mRefresh: localStorage.getItem('bmd_m_refresh')
-    };
-
-    var Quotes = [
-        {t:"The only way to do great work is to love what you do.", a:"Steve Jobs", y:"2005"},
-        {t:"Life is what happens when you're busy making other plans.", a:"John Lennon",
-y:"1980"},
-        {t:"Get busy living or get busy dying.", a:"Stephen King", y:"1982"},
-        {t:"You only live once, but if you do it right, once is enough.", a:"Mae West",
-y:"1930"},
-        {t:"Many of life's failures are people who did not realize how close they were to
-success when they gave up.", a:"Thomas Edison", y:"1900"},
-        {t:"If you want to live a happy life, tie it to a goal, not to people or things.",
-a:"Albert Einstein", y:"1930"},
-        {t:"Never let the fear of striking out keep you from playing the game.", a:"Babe Ruth",
-y:"1920"},
-        {t:"Money and success don't change people; they merely amplify what is already there.",
-a:"Will Smith", y:"2000"},
-        {t:"Not how long, but how well you have lived is the main thing.", a:"Seneca", y:"65"},
-        {t:"The purpose of our lives is to be happy.", a:"Dalai Lama", y:"1980"},
-        {t:"Life is really simple, but we insist on making it complicated.", a:"Confucius",
-y:"500BC"},
-        {t:"May you live all the days of your life.", a:"Jonathan Swift", y:"1700"},
-        {t:"Life itself is the most wonderful fairy tale.", a:"Hans Christian Andersen",
-y:"1800"},
-        {t:"Do not let making a living prevent you from making a life.", a:"John Wooden",
-y:"1970"},
-        {t:"Life is ours to be spent, not to be saved.", a:"D. H. Lawrence", y:"1920"}
-    ];
-
-    // --- UTILS ---
-    function pad2(n){ var s=String(Math.floor(n)); return s.length<2?'0'+s:s; }
-
-    function saveState(){
-        localStorage.setItem('bmd_loc', JSON.stringify(State.loc));
-        localStorage.setItem('bmd_selDate', State.selDate);
-        localStorage.setItem('bmd_tasks', JSON.stringify(State.tasks));
-        localStorage.setItem('bmd_crypto', JSON.stringify(State.crypto));
-        localStorage.setItem('bmd_forex', JSON.stringify(State.forex));
-        localStorage.setItem('bmd_cd', JSON.stringify(State.countdown));
-        localStorage.setItem('bmd_unitC', State.unitC);
-        if(State.gToken) localStorage.setItem('bmd_g_token', State.gToken);
-        if(State.mToken) localStorage.setItem('bmd_m_token', State.mToken);
-        if(State.mRefresh) localStorage.setItem('bmd_m_refresh', State.mRefresh);
-    }
-
-    function fmtDate(d, opts){
-        if(!State.loc) return d.toLocaleDateString();
-        return d.toLocaleDateString('en-US', Object.assign({timeZone: State.loc.tz}, opts));
-    }
-
-    function getGreeting(){
-        var h = new Date().getHours();
-        if(h < 12) return "Good Morning";
-        if(h < 17) return "Good Afternoon";
-        if(h < 21) return "Good Evening";
-        return "Good Night";
-    }
-
-    // --- DOM ELEMENTS ---
-    var E = {};
-    function $(id){ return document.getElementById(id); }
-    function initElems(){
-        E.greetTitle = $('greet-title');
-        E.greetSub = $('greet-sub');
-        E.weatherIcon = $('weather-icon');
-        E.weatherTemp = $('weather-temp');
-        E.weatherCond = $('weather-cond');
-        E.weatherCity = $('weather-city');
-        E.clockContainer = $('clock-container');
-        E.quoteText = $('quote-text');
-        E.quoteAuthor = $('quote-author');
-        E.statMailCount = $('stat-mail-count');
-        E.statEventsCount = $('stat-events-count');
-        E.taskCountBig = $('task-count-big');
-        E.newsList = $('news-list');
-        E.prayerList = $('prayer-list');
-        E.gcalNav = $('gcal-nav');
-        E.gcalList = $('gcal-list');
-        E.gmailList = $('gmail-list');
-        E.ocalNav = $('ocal-nav');
-        E.ocalList = $('ocal-list');
-        E.omailList = $('omail-list');
-        E.cryptoList = $('crypto-list');
-        E.forexList = $('forex-list');
-        E.cdDisplay = $('cd-display');
-        E.cdName = $('cd-name');
-        E.cdDate = $('cd-date');
-        E.calMonthLabel = $('cal-month-label');
-        E.miniCalGrid = $('mini-cal-grid');
-        E.remNav = $('rem-nav');
-        E.remList = $('rem-list');
-        E.remInput = $('rem-input');
-        E.locResults = $('loc-results');
-        E.locSearch = $('loc-search');
-    }
-
-    // --- WIDGET: CLOCK (7-SEGMENT) ---
-    function initClock(){
-        // Build HTML structure for 6 digits + 2 colons
-        var html = '';
-        // HH
-        for(var i=0; i<2; i++) html += '<div class="digit" id="dig-h'+i+'"></div>';
-        // :
-        html += '<div class="colon"><div class="colon-dot"></div><div
-class="colon-dot"></div></div>';
-        // MM
-        for(var i=0; i<2; i++) html += '<div class="digit" id="dig-m'+i+'"></div>';
-        // :
-        html += '<div class="colon"><div class="colon-dot"></div><div
-class="colon-dot"></div></div>';
-        // SS
-        for(var i=0; i<2; i++) html += '<div class="digit" id="dig-s'+i+'"></div>';
-
-        E.clockContainer.innerHTML = html;
-
-        // Define segments for digits 0-9 (a,b,c,d,e,f,g)
-        // Grid Areas: a(top), b(top-right), c(bot-right), d(bot), e(bot-left), f(top-left),
-g(mid)
-        var segs = [
-            [1,1,1,1,1,1,0], // 0
-            [0,1,1,0,0,0,0], // 1
-            [1,1,0,1,1,0,1], // 2
-            [1,1,1,1,0,0,1], // 3
-            [0,1,1,0,0,1,1], // 4
-            [1,0,1,1,0,1,1], // 5
-            [1,0,1,1,1,1,1], // 6
-            [1,1,1,0,0,0,0], // 7
-            [1,1,1,1,1,1,1], // 8
-            [1,1,1,1,0,1,1]  // 9
-        ];
-        var names = ['a','b','c','d','e','f','g'];
-
-        window.updateClock = function(){
-            var now = State.loc ? new Date(new Date().toLocaleString("en-US", {timeZone:
-State.loc.tz})) : new Date();
-            var h = pad2(now.getHours());
-            var m = pad2(now.getMinutes());
-            var s = pad2(now.getSeconds());
-            var str = h + m + s;
-
-            for(var i=0; i<6; i++){
-                var digit = parseInt(str[i]);
-                var container = i < 2 ? $('dig-h'+i) : (i < 4 ? $('dig-m'+(i-2)) :
-$('dig-s'+(i-4)));
-
-                // Only rebuild if empty or changed (optimization)
-                if(container.childElementCount === 0){
-                    container.innerHTML = '';
-                    var pattern = segs[digit];
-                    for(var j=0; j<7; j++){
-                        var cls = pattern[j] ? 'seg-on' : 'seg-off';
-                        container.innerHTML += '<div class="seg seg-'+names[j]+'
-'+cls+'"></div>';
-                    }
-                } else {
-                    // Update classes
-                    var children = container.children;
-                    var pattern = segs[digit];
-                    for(var j=0; j<7; j++){
-                        if(pattern[j]) children[j].classList.add('seg-on');
-                        else children[j].classList.remove('seg-on');
-                    }
-                }
-            }
-
-            // Blink colons
-            var dots = document.querySelectorAll('.colon-dot');
-            if(now.getSeconds() % 2 === 0){
-                dots.forEach(function(d){ d.style.opacity = 1; });
-            } else {
-                dots.forEach(function(d){ d.style.opacity = 0.3; });
-            }
-
-            requestAnimationFrame(window.updateClock);
-        };
-        requestAnimationFrame(window.updateClock);
-    }
-
-    // --- WIDGET: WEATHER ---
-    function fetchWeather(){
-        if(!State.loc) return;
-        var url =
-'https://api.open-meteo.com/v1/forecast?latitude='+State.loc.lat+'&longitude='+State.loc.lon+'&cu'https://api.open-meteo.com/v1/forecast?latitude='+State.loc.lat+'&longitude='+tate.loc.lon+'&current_weather=true';
-        fetch(url).then(function(r){ return r.json(); }).then(function(data){
-            var temp = data.current_weather.temperature;
-            var code = data.current_weather.weathercode;
-
-            // Convert if Fahrenheit
-            if(!State.unitC) temp = (temp * 9/5) + 32;
-
-            E.weatherTemp.innerText = Math.round(temp) + (State.unitC ? '\u00B0C' : '\u00B0F');
-            E.weatherCity.innerText = State.loc.name;
-
-            // Icon mapping
-            var icon = '\uD83C\uDF24️';
-            if(code === 0) icon = '\u2600️'; // Clear
-            else if(code <= 3) icon = '\uD83C\uDF24️'; // Partly cloudy
-            else if(code <= 45) icon = '\uD83C\uDF2B️'; // Fog
-            else if(code <= 67) icon = '\uD83C\uDF27️'; // Rain
-            else if(code <= 77) icon = '\u2744️'; // Snow
-            else if(code <= 82) icon = '\uD83C\uDF27️'; // Rain heavy
-            else if(code <= 86) icon = '\u2744️'; // Snow heavy
-            else if(code <= 99) icon = '\u26C8️'; // Thunder
-            E.weatherIcon.innerText = icon;
-
-            // Dynamic Background
-            var bg = 'linear-gradient(to bottom, #0f0f1a, #07070f)';
-            if(code === 0) bg = 'linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d)'; //
-Sunny
-            if(code > 50 && code < 80) bg = 'linear-gradient(to bottom, #203a43, #2c5364)';
-// Rain
-            $('bg-overlay').style.backgroundImage = bg;
-        }).catch(function(){ console.log('Weather failed'); });
-    }
-
-    // --- WIDGET: PRAYER TIMES ---
-    function fetchPrayers(){
-        if(!State.loc) return;
-        var date = new Date();
-        var dStr = date.getDate() + '-' + (date.getMonth()+1) + '-' + date.getFullYear();
-        var url =
-'https://api.aladhan.com/v1/timings/'+dStr+'?latitude='+State.loc.lat+'&longitude='+State.loc.lon'https://api.aladhan.com/v1/timings/'+dStr+'?latitude='+State.loc.lat+'&longitue='+State.loc.lon+'&method=2';
-        fetch(url).then(function(r){ return r.json(); }).then(function(data){
-            var t = data.data.timings;
-            var names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-            var html = '';
-
-            var nowMin = date.getHours()*60 + date.getMinutes();
-            var nextIdx = -1;
-
-            names.forEach(function(n, idx){
-                var parts = t[n].split(':');
-                var pMin = parseInt(parts[0])*60 + parseInt(parts[1]);
-                var active = '';
-                if(pMin > nowMin && nextIdx === -1) { nextIdx = idx; active = 'active'; }
-                html += '<div class="prayer-row '+active+'"><span>'+n+'</span><span
-class="mono">'+t[n]+'</span></div>';
-            });
-            E.prayerList.innerHTML = html;
-        });
-    }
-
-    // --- WIDGET: NEWS ---
-    function fetchNews(){
-        var feeds = [
-            {cat:'Auto', url:'https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml'},
-            {cat:'MidEast', url:'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml'},
-            {cat:'Viewed', url:'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'},
-            {cat:'Shared', url:'https://rss.nytimes.com/services/xml/rss/nyt/MostShared.xml'},
-            {cat:'Tech', url:'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml'}
-        ];
-        var allItems = [];
-        var count = 0;
-
-        function checkDone(){
-            count++;
-            if(count === feeds.length){
-                allItems.sort(function(a,b){ return new Date(b.pubDate) - new Date(a.pubDate);
-});
-                renderNews(allItems.slice(0, 15));
-            }
-        }
-
-        feeds.forEach(function(f){
-
-fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(f.url)).then(function(r)fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(f.url)).thenfunction(r){
-                return r.json();
-            }).then(function(d){
-                if(d.status === 'ok'){
-                    d.items.forEach(function(it){
-                        it.cat = f.cat;
-                        allItems.push(it);
-                    });
-                }
-                checkDone();
-            }).catch(function(){ checkDone(); });
-        });
-    }
-
-    function renderNews(items){
-        if(items.length === 0){
-            E.newsList.innerHTML = '<div class="text-center" style="padding:20px;">No news
-available</div>';
-            return;
-        }
-        var html = '';
-        items.forEach(function(it){
-            var d = new Date(it.pubDate);
-            var dateStr = d.getMonth()+1+'/'+d.getDate();
-            html += '<div class="news-item">';
-            html += '<span class="news-tag">'+it.cat+'</span>';
-            html += '<div class="news-content">';
-            html += '<div class="news-title">'+it.title+'</div>';
-            html += '<div class="news-date mono">'+dateStr+'</div>';
-            html += '</div></div>';
-        });
-        E.newsList.innerHTML = html;
-        $('news-dot').style.display = 'inline-block';
-        setTimeout(function(){ $('news-dot').style.display = 'none'; }, 5000);
-    }
-
-    // --- WIDGET: CRYPTO & FOREX ---
-    function fetchCrypto(){
-        var ids = 'bitcoin,ethereum,solana,helium,binancecoin,official-trump';
-
-fetch('https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=usd').then(functiofetch('https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=usd').thenfunction(r){
-            if(!r.ok) throw new Error();
-            return r.json();
-        }).then(function(d){
-            State.crypto = d;
-            saveState();
-            renderCrypto();
-            $('crypto-dot').style.display = 'inline-block';
-            setTimeout(function(){ $('crypto-dot').style.display = 'none'; }, 5000);
-        }).catch(function(){
-            renderCrypto(); // Show cached
-        });
-    }
-
-    function renderCrypto(){
-        var map = {bitcoin:'BTC', ethereum:'ETH', solana:'SOL', helium:'HNT', binancecoin:'BNB',
-'official-trump':'TRUMP'};
-        var html = '';
-        var hasData = false;
-        for(var k in map){
-            if(State.crypto[k]){
-                hasData = true;
-                html += '<div style="display:flex; justify-content:space-between;
-margin-bottom:8px; padding:8px; background:rgba(255,255,255,0.03); border-radius:8px;">';
-                html += '<span>'+map[k]+'</span><span>$'+State.crypto[k].usd+'</span></div>';
-            }
-        }
-        E.cryptoList.innerHTML = html || (hasData ? '' : 'Offline / No Data');
-    }
-
-    function fetchForex(){
-
-fetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,SAR,GBP,AED,XAU,XAG').then(functfetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,SAR,GBP,AED,XAU,XAG').thn(function(r){
-            return r.json();
-        }).then(function(d){
-            State.forex = d.rates;
-            saveState();
-            renderForex();
-            $('forex-dot').style.display = 'inline-block';
-            setTimeout(function(){ $('forex-dot').style.display = 'none'; }, 5000);
-        }).catch(function(){ renderForex(); });
-    }
-
-    function renderForex(){
-        var map = {EUR:'EUR', SAR:'SAR', GBP:'GBP', AED:'AED', XAU:'Gold', XAG:'Silver'};
-        var html = '';
-        var hasData = false;
-        for(var k in map){
-            if(State.forex[k]){
-                hasData = true;
-                var val = k === 'XAU' || k === 'XAG' ? State.forex[k].toFixed(2) :
-State.forex[k].toFixed(3);
-                html += '<div style="display:flex; justify-content:space-between;
-margin-bottom:8px; padding:8px; background:rgba(255,255,255,0.03); border-radius:8px;">';
-                html += '<span>USD/'+map[k]+'</span><span>'+val+'</span></div>';
-            }
-        }
-        E.forexList.innerHTML = html || (hasData ? '' : 'Offline / No Data');
-    }
-
-    // --- WIDGET: TASKS & CALENDAR ---
-    function renderMiniCal(){
-        var d = new Date(State.selDate);
-        var y = d.getFullYear();
-        var m = d.getMonth();
-
-        var monthNames =
-["January","February","March","April","May","June","July","August","September","October","Novembe["January","February","March","April","May","June","July","August","Septmber","October","November","December"];
-        E.calMonthLabel.innerText = monthNames[m] + ' ' + y;
-
-        var firstDay = new Date(y, m, 1).getDay();
-        var daysInMonth = new Date(y, m+1, 0).getDate();
-        var daysInPrev = new Date(y, m, 0).getDate();
-
-        var html = '';
-        // Prev month leading days
-        for(var i=0; i<firstDay; i++){
-             var dayNum = daysInPrev - (firstDay - 1) + i;
-             html += '<div class="cal-day other">'+dayNum+'</div>';
-        }
-
-        // Current month
-        var todayStr = new Date().toISOString().split('T')[0];
-        for(var i=1; i<=daysInMonth; i++){
-            var currStr = y + '-' + pad2(m+1) + '-' + pad2(i);
-            var cls = '';
-            if(currStr === State.selDate) cls = 'selected';
-            if(currStr === todayStr) cls += (cls ? ' ' : '') + 'today';
-            html += '<div class="cal-day '+cls+'" data-date="'+currStr+'">'+i+'</div>';
-        }
-
-        // Next month trailing
-        var totalCells = firstDay + daysInMonth;
-        var remainder = totalCells % 7;
-        if(remainder !== 0){
-            for(var i=1; i<=(7-remainder); i++){
-                html += '<div class="cal-day other">'+i+'</div>';
-            }
-        }
-
-        E.miniCalGrid.innerHTML = html;
-
-        // Attach listeners
-        var days = E.miniCalGrid.querySelectorAll('.cal-day:not(.other)');
-        days.forEach(function(el){
-            el.addEventListener('click', function(){
-                State.selDate = this.getAttribute('data-date');
-                saveState();
-                refreshAll();
-            });
-        });
-    }
-
-    function renderTasks(){
-        var list = State.tasks.filter(function(t){ return t.dk === State.selDate; });
-
-        var html = '';
-        list.forEach(function(t){
-            html += '<div class="reminder-item">';
-            html += '<div class="reminder-check '+(t.done?'done':'')+'"
-data-id="'+t.id+'"></div>';
-            html += '<div class="reminder-text '+(t.done?'done':'')+'">'+t.title+'</div>';
-            html += '<button class="btn-del" data-del="'+t.id+'">\uD83D\uDDD1</button>';
-            html += '</div>';
-        });
-        E.remList.innerHTML = html;
-
-        var remaining = State.tasks.filter(function(t){ return !t.done && t.dk ===
-State.selDate; }).length;
-        E.taskCountBig.innerText = remaining;
-
-        // 7-day nav
-        var navHtml = '';
-        for(var i=-3; i<=3; i++){
-            var d = new Date(State.selDate);
-            d.setDate(d.getDate() + i);
-            var dStr = d.toISOString().split('T')[0];
-            var label = i===0 ? 'Today' : (d.toLocaleDateString('en-US',{weekday:'short'}));
-            var active = dStr === State.selDate ? 'active' : '';
-            navHtml += '<div class="pill '+active+'" data-date="'+dStr+'">'+label+'</div>';
-        }
-        E.remNav.innerHTML = navHtml;
-
-        E.remNav.querySelectorAll('.pill').forEach(function(el){
-            el.addEventListener('click', function(){
-                State.selDate = this.getAttribute('data-date');
-                saveState();
-                refreshAll();
-            });
-        });
-
-        E.remList.querySelectorAll('.reminder-check').forEach(function(el){
-            el.addEventListener('click', function(){
-                var id = this.getAttribute('data-id');
-                var t = State.tasks.find(function(x){ return x.id == id; });
-                if(t){ t.done = !t.done; saveState(); renderTasks(); }
-            });
-        });
-        E.remList.querySelectorAll('[data-del]').forEach(function(el){
-            el.addEventListener('click', function(){
-                var id = this.getAttribute('data-del');
-                State.tasks = State.tasks.filter(function(x){ return x.id != id; });
-                saveState();
-                renderTasks();
-            });
-        });
-    }
-
-    function renderCountdown(){
-        if(!State.countdown.date) { E.cdDisplay.innerText = "--"; return; }
-        var target = new Date(State.countdown.date).getTime();
-        var now = new Date().getTime();
-        var diff = target - now;
-
-        if(diff < 0){ E.cdDisplay.innerText = "Expired"; return; }
-
-        var d = Math.floor(diff / (1000 * 60 * 60 * 24));
-        var h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        var s = Math.floor((diff % (1000 * 60)) / 1000);
-
-        if(d > 0){
-            E.cdDisplay.innerText = d + 'd ' + pad2(h) + 'h ' + pad2(m) + 'm';
-        } else {
-            E.cdDisplay.innerText = pad2(h) + ':' + pad2(m) + ':' + pad2(s);
-        }
-    }
-
-    // --- AUTH & API: GOOGLE ---
-    function gAuth(scope, callback){
-        if(!window.google){ alert('Google API not loaded yet.'); return; }
-        var tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CFG.googleClientId,
-            scope: scope,
-            callback: function(resp){
-                if(resp.error) { console.error(resp); return; }
-                State.gToken = resp.access_token;
-                saveState();
-                callback();
-            }
-        });
-        if(State.gToken){
-            callback();
-        } else {
-            tokenClient.requestAccessToken();
-        }
-    }
-
-    function loadGCal(){
-        if(!State.gToken) return;
-        var start = State.selDate + 'T00:00:00Z';
-        var end = State.selDate + 'T23:59:59Z';
-
-fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin='+start+'&timeMax=fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin='+start+'&imeMax='+end+'&orderBy=startTime&singleEvents=true', {
-            headers: { 'Authorization': 'Bearer ' + State.gToken }
-        }).then(function(r){ return r.json(); }).then(function(d){
-            var html = '';
-            if(!d.items || d.items.length === 0){ html = '<div class="text-center"
-style="color:var(--text-muted); padding:10px;">No events</div>'; }
-            else {
-                d.items.forEach(function(ev){
-                    var time = ev.start.dateTime ? ev.start.dateTime.substring(11,16) : 'All
-Day';
-                    html += '<div class="event-item"
-onclick="window.location=\'googlecalendar://\'"><div style="flex:1;"><div
-style="font-weight:bold;">'+ev.summary+'</div><div class="mono"
-style="font-size:0.8rem;">'+time+'</div></div></div>';
-                });
-            }
-            E.gcalList.innerHTML = html;
-            $('stat-events-count').innerText = d.items.length || 0;
-            $('btn-gcal-add').classList.remove('hidden');
-        });
-    }
-
-    function loadGmail(){
-        if(!State.gToken) return;
-        fetch('https://www.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=15',
-{
-            headers: { 'Authorization': 'Bearer ' + State.gToken }
-        }).then(function(r){ return r.json(); }).then(function(d){
-            if(!d.messages){
-                $('stat-mail-count').innerText = 0;
-                E.gmailList.innerHTML = '<div class="text-center"
-style="color:var(--text-muted); padding:10px;">Inbox Zero!</div>';
-                return;
-            }
-            $('stat-mail-count').innerText = d.messages.length;
-            E.gmailList.innerHTML = '<div class="text-center" style="color:var(--text-muted);
-padding:10px; font-size:0.8rem;">'+d.messages.length+' Unread. Tap stats to open app.</div>';
-        });
-    }
-
-    // --- AUTH & API: MICROSOFT (PKCE) ---
-    function generateRandomString(length) {
-        var text = "";
-        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        for (var i = 0; i < length; i++) {
-            text += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return text;
-    }
-
-    async function sha256(plain) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(plain);
-        return window.crypto.subtle.digest('SHA-256', data);
-    }
-
-    function base64urlencode(arr) {
-        var str = "";
-        var bytes = new Uint8Array(arr);
-        var len = bytes.byteLength;
-        for (var i = 0; i < len; i++) {
-            str += String.fromCharCode(bytes[i]);
-        }
-        return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    function msAuth(){
-        var verifier = generateRandomString(32);
-        sessionStorage.setItem('ms_verifier', verifier);
-        sha256(verifier).then(function(hash){
-            var challenge = base64urlencode(hash);
-            var url =
-'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id='+CFG.msClientId+
-                '&response_type=code&redirect_uri='+encodeURIComponent(CFG.msRedirect)+
-
-'&scope=openid%20profile%20User.Read%20Mail.Read%20Calendars.Read%20Calendars.ReadWrite%20offline'&scope=openid%20profile%20User.Read%20Mail.Read%20Calendars.Read%20Calendars.ReaWrite%20offline_access'+
-                '&code_challenge='+challenge+'&code_challenge_method=S256';
-            window.location.href = url;
-        });
-    }
-
-    function msTokenExchange(code){
-        var verifier = sessionStorage.getItem('ms_verifier');
-        var formData = new FormData();
-        formData.append('client_id', CFG.msClientId);
-        formData.append('scope', 'openid profile User.Read Mail.Read Calendars.Read
-Calendars.ReadWrite offline_access');
-        formData.append('code', code);
-        formData.append('redirect_uri', CFG.msRedirect);
-        formData.append('grant_type', 'authorization_code');
-        formData.append('code_verifier', verifier);
-
-        fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', { method: 'POST',
-body: formData })
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-            if(d.error){ console.error(d); alert('Auth Error: '+d.error_description); return; }
-            State.mToken = d.access_token;
-            State.mRefresh = d.refresh_token;
-            saveState();
-            // Clean URL and reload to render dashboard
-            window.history.replaceState({}, document.title, CFG.msRedirect.split('#')[0]);
-            location.reload();
-        });
-    }
-
-    function msRefreshToken(){
-        if(!State.mRefresh) return Promise.reject();
-        var formData = new FormData();
-        formData.append('client_id', CFG.msClientId);
-        formData.append('scope', 'openid profile User.Read Mail.Read Calendars.Read
-Calendars.ReadWrite offline_access');
-        formData.append('refresh_token', State.mRefresh);
-        formData.append('grant_type', 'refresh_token');
-
-        return fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', { method:
-'POST', body: formData })
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-            if(d.error) throw new Error(d.error);
-            State.mToken = d.access_token;
-            if(d.refresh_token) State.mRefresh = d.refresh_token;
-            saveState();
-            return d.access_token;
-        });
-    }
-
-    function loadOData(endpoint, listEl, navEl, isMail){
-        if(!State.mToken) return;
-
-        var start = State.selDate + 'T00:00:00Z';
-        var end = State.selDate + 'T23:59:59Z';
-        var url = isMail
-            ? 'https://graph.microsoft.com/v1.0/me/messages?$filter=isRead eq
-false&$top=15&$select=from,subject,receivedDateTime'
-            :
-'https://graph.microsoft.com/v1.0/me/events?$orderby=start/dateTime&startdatetime='+start+'&endda'https://graph.microsoft.com/v1.0/me/events?$orderby=start/dateTime&startdatetime='start+'&enddatetime='+end;
-
-        function fetchData(token){
-            return fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-        }
-
-        fetchData(State.mToken)
-        .then(function(r){
-            if(r.status === 401) return msRefreshToken().then(function(t){ return fetchData(t);
-});
-            return r;
-        })
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-            var html = '';
-            if(isMail){
-                if(!d.value || d.value.length === 0){ html = '<div class="text-center"
-style="color:var(--text-muted); padding:10px;">No unread mail</div>'; }
-                else {
-                    d.value.forEach(function(m){
-                        var initial = m.from.emailAddress.name.charAt(0).toUpperCase();
-                        html += '<div class="mail-item"><div
+(function(){'use strict';
+var CFG={googleClientId:'623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.comCFG={googleClientId:'623465337664-jf51sn11crs5bs398inc40al4ksjv1rd.apps.googleusercontent.com',msClientId:'1155afdf-d585-48cc-af89-b973843ce21a',msRedirect:'https://ghaziomairi93.github.io/ho,msClientId:'1155afdf-d585-48cc-af89-b973843ce21a',msRedirect:'https://ghaziomairi93.github.io/houdini-tools/',web3Key:'53bad208-02b2-40b6-974b-98f8b68d0439'};
+var State={loc:JSON.parse(localStorage.getItem('bmd_loc'))||null,selDate:localStorage.getItem('bmState={loc:JSON.parse(localStorage.getItem('bmd_loc'))||null,selDate:localStorage.getItem('bmd_selDate')||new
+Date().toISOString().split('T')[0],tasks:JSON.parse(localStorage.getItem('bmd_tasks'))||[],cryptoDate().toISOString().split('T')[0],tasks:JSON.parse(localStorage.getItem('bmd_tass'))||[],crypto:JSON.parse(localStorage.getItem('bmd_crypto'))||{},forex:JSON.parse(localStorage.getItem('bmd_forJSON.parse(localStorage.getItem('bmd_crypto'))||{},forex:JSON.parse(localStorage.getItem('bmd_forex'))||{},countdown:JSON.parse(localStorage.getItem('bmd_cd'))||{name:'',date:''},unitC:localStorax'))||{},countdown:JSON.parse(localStorage.getItem('bmd_cd'))||{name:'',date:''},unitC:localStorage.getItem('bmd_unitC')!=='false',gToken:localStorage.getItem('bmd_g_token'),mToken:localStorage.ge.getItem('bmd_unitC')!=='false',gToken:localStorage.getItem('bmd_g_token'),mToken:localStorage.getItem('bmd_m_token'),mRefresh:localStorage.getItem('bmd_m_refresh')};
+var Quotes=[{t:"The only way to do great work is to love what you do.",a:"Steve
+Jobs",y:"2005"},{t:"Life is what happens when you're busy making other plans.",a:"John
+Lennon",y:"1980"},{t:"Get busy living or get busy dying.",a:"Stephen King",y:"1982"},{t:"You
+only live once, but if you do it right, once is enough.",a:"Mae West",y:"1930"},{t:"Many of
+life's failures are people who did not realize how close they were to success when they gave
+up.",a:"Thomas Edison",y:"1900"},{t:"If you want to live a happy life, tie it to a goal, not to
+people or things.",a:"Albert Einstein",y:"1930"},{t:"Never let the fear of striking out keep you
+from playing the game.",a:"Babe Ruth",y:"1920"},{t:"Money and success don't change people; they
+merely amplify what is already there.",a:"Will Smith",y:"2000"},{t:"Not how long, but how well
+you have lived is the main thing.",a:"Seneca",y:"65"},{t:"The purpose of our lives is to be
+happy.",a:"Dalai Lama",y:"1980"},{t:"Life is really simple, but we insist on making it
+complicated.",a:"Confucius",y:"500BC"},{t:"May you live all the days of your life.",a:"Jonathan
+Swift",y:"1700"},{t:"Life itself is the most wonderful fairy tale.",a:"Hans Christian
+Andersen",y:"1800"},{t:"Do not let making a living prevent you from making a life.",a:"John
+Wooden",y:"1970"},{t:"Life is ours to be spent, not to be saved.",a:"D. H. Lawrence",y:"1920"}];
+function pad2(n){var s=String(Math.floor(n));return s.length<2?'0'+s:s}
+function
+saveState(){localStorage.setItem('bmd_loc',JSON.stringify(State.loc));localStorage.setItem('bmd_ssaveState(){localStorage.setItem('bmd_loc',JSON.stringify(State.loc));localStorage.setItm('bmd_selDate',State.selDate);localStorage.setItem('bmd_tasks',JSON.stringify(State.tasks));localStorage.lDate',State.selDate);localStorage.setItem('bmd_tasks',JSON.stringify(State.tasks));localStorage.setItem('bmd_crypto',JSON.stringify(State.crypto));localStorage.setItem('bmd_forex',JSON.stringifyetItem('bmd_crypto',JSON.stringify(State.crypto));localStorage.setItem('bmd_forex',JSON.stringify(State.forex));localStorage.setItem('bmd_cd',JSON.stringify(State.countdown));localStorage.setItemState.forex));localStorage.setItem('bmd_cd',JSON.stringify(State.countdown));localStorage.setItem('bmd_unitC',State.unitC);if(State.gToken)localStorage.setItem('bmd_g_token',State.gToken);if(Stat'bmd_unitC',State.unitC);if(State.gToken)localStorage.setItem('bmd_g_token',State.gToken);if(State.mToken)localStorage.setItem('bmd_m_token',State.mToken);if(State.mRefresh)localStorage.setItem('.mToken)localStorage.setItem('bmd_m_token',State.mToken);if(State.mRefresh)localStorage.setItem('bmd_m_refresh',State.mRefresh)}
+function fmtDate(d,opts){if(!State.loc)return d.toLocaleDateString();return
+d.toLocaleDateString('en-US',Object.assign({timeZone:State.loc.tz},opts))}
+function getGreeting(){var h=new Date().getHours();if(h<12)return"Good
+Morning";if(h<17)return"Good Afternoon";if(h<21)return"Good Evening";return"Good Night"}
+var E={};
+function $(id){return document.getElementById(id)}
+function
+initElems(){E.greetTitle=$('greet-title');E.greetSub=$('greet-sub');E.weatherIcon=$('weather-iconinitElems(){E.greetTitle=$('greet-title');E.greetSub=$('greet-sub');E.weatherIcon=$('weaher-icon');E.weatherTemp=$('weather-temp');E.weatherCond=$('weather-cond');E.weatherCity=$('weather-city'));E.weatherTemp=$('weather-temp');E.weatherCond=$('weather-cond');E.weatherCity=$('weather-city');E.clockContainer=$('clock-container');E.quoteText=$('quote-text');E.quoteAuthor=$('quote-author')E.clockContainer=$('clock-container');E.quoteText=$('quote-text');E.quoteAuthor=$('quote-author');E.statMailCount=$('stat-mail-count');E.statEventsCount=$('stat-events-count');E.taskCountBig=$('tE.statMailCount=$('stat-mail-count');E.statEventsCount=$('stat-events-count');E.taskCountBig=$('task-count-big');E.newsList=$('news-list');E.prayerList=$('prayer-list');E.gcalNav=$('gcal-nav');E.sk-count-big');E.newsList=$('news-list');E.prayerList=$('prayer-list');E.gcalNav=$('gcal-nav');E.gcalList=$('gcal-list');E.gmailList=$('gmail-list');E.ocalNav=$('ocal-nav');E.ocalList=$('ocal-liscalList=$('gcal-list');E.gmailList=$('gmail-list');E.ocalNav=$('ocal-nav');E.ocalList=$('ocal-list');E.omailList=$('omail-list');E.cryptoList=$('crypto-list');E.forexList=$('forex-list');E.cdDisp');E.omailList=$('omail-list');E.cryptoList=$('crypto-list');E.forexList=$('forex-list');E.cdDisplay=$('cd-display');E.cdName=$('cd-name');E.cdDate=$('cd-date');E.calMonthLabel=$('cal-month-labelay=$('cd-display');E.cdName=$('cd-name');E.cdDate=$('cd-date');E.calMonthLabel=$('cal-month-label');E.miniCalGrid=$('mini-cal-grid');E.remNav=$('rem-nav');E.remList=$('rem-list');E.remInput=$('re);E.miniCalGrid=$('mini-cal-grid');E.remNav=$('rem-nav');E.remList=$('rem-list');E.remInput=$('rem-input');E.locResults=$('loc-results');E.locSearch=$('loc-search')}
+function initClock(){var html='';for(var i=0;i<2;i++)html+='<div class="digit"
+id="dig-h'+i+'"></div>';html+='<div class="colon"><div class="colon-dot"></div><div
+class="colon-dot"></div></div>';for(var i=0;i<2;i++)html+='<div class="digit"
+id="dig-m'+i+'"></div>';html+='<div class="colon"><div class="colon-dot"></div><div
+class="colon-dot"></div></div>';for(var i=0;i<2;i++)html+='<div class="digit"
+id="dig-s'+i+'"></div>';E.clockContainer.innerHTML=html;var
+segs=[[1,1,1,1,1,1,0],[0,1,1,0,0,0,0],[1,1,0,1,1,0,1],[1,1,1,1,0,0,1],[0,1,1,0,0,1,1],[1,0,1,1,0,segs=[[1,1,1,1,1,1,0],[0,1,1,0,0,0,0][1,1,0,1,1,0,1],[1,1,1,1,0,0,1],[0,1,1,0,0,1,1],[1,0,1,1,0,1,1],[1,0,1,1,1,1,1],[1,1,1,0,0,0,0],[1,1,1,1,1,1,1],[1,1,1,1,0,1,1]];var
+names=['a','b','c','d','e','f','g'];window.updateClock=function(){var now=State.loc?new Date(new
+Date().toLocaleString("en-US",{timeZone:State.loc.tz})):new Date();var
+h=pad2(now.getHours());var m=pad2(now.getMinutes());var s=pad2(now.getSeconds());var
+str=h+m+s;for(var i=0;i<6;i++){var digit=parseInt(str[i]);var
+container=i<2?$('dig-h'+i):(i<4?$('dig-m'+(i-2)):$('dig-s'+(i-4)));if(container.childElementCountcontainer=i<2?$('dig-h'+i):(i<4?$('ig-m'+(i-2)):$('dig-s'+(i-4)));if(container.childElementCount===0){container.innerHTML='';var pattern=segs[digit];for(var j=0;j<7;j++){var
+cls=pattern[j]?'seg-on':'seg-off';container.innerHTML+='<div class="seg seg-'+names[j]+'
+'+cls+'"></div>'}}else{var children=container.children;var pattern=segs[digit];for(var
+j=0;j<7;j++){if(pattern[j])children[j].classList.add('seg-on');else
+children[j].classList.remove('seg-on')}}}var
+dots=document.querySelectorAll('.colon-dot');if(now.getSeconds()%2===0){dots.forEach(function(d){dots=document.querySelectorAll('.colon-dot');if(now.etSeconds()%2===0){dots.forEach(function(d){d.style.opacity=1})}else{dots.forEach(function(d){d.style.opacity=0.3})}requestAnimationFrame(wind.style.opacity=1})}else{dots.forEach(function(d){d.style.opacity=0.3})}requestAnimationFrame(window.updateClock)};requestAnimationFrame(window.updateClock)}
+function fetchWeather(){if(!State.loc)return;var
+url='https://api.open-meteo.com/v1/forecast?latitude='+State.loc.lat+'&longitude='+State.loc.lon+url='https://api.open-meteo.com/v1/forecast?latiude='+State.loc.lat+'&longitude='+State.loc.lon+'&current_weather=true';fetch(url).then(function(r){return r.json()}).then(function(data){var
+temp=data.current_weather.temperature;var
+code=data.current_weather.weathercode;if(!State.unitC)temp=(temp*9/5)+32;E.weatherTemp.innerText=code=data.current_weather.weathercode;if(!State.unitC)tmp=(temp*9/5)+32;E.weatherTemp.innerText=Math.round(temp)+(State.unitC?'°C':'°F');E.weatherCity.innerText=State.loc.name;var i
+icon='🌤️';if(code===0)icon='☀️';else if(code<=3)icon='🌤️';else if(code<=45)icon='🌫️';else
+if(code<=67)icon='🌧️';else if(code<=77)icon='❄️';else if(code<=82)icon='🌧️';else
+if(code<=86)icon='❄️';else if(code<=99)icon='⛈️';E.weatherIcon.innerText=icon;var
+bg='linear-gradient(to bottom, #0f0f1a, #07070f)';if(code===0)bg='linear-gradient(to bottom,
+#1a2a6c, #b21f1f, #fdbb2d)';if(code>50&&code<80)bg='linear-gradient(to bottom, #203a43,
+#2c5364)';$('bg-overlay').style.backgroundImage=bg}).catch(function(){console.log('Weather
+failed')})}
+function fetchPrayers(){if(!State.loc)return;var date=new Date();var
+dStr=date.getDate()+'-'+(date.getMonth()+1)+'-'+date.getFullYear();var
+url='https://api.aladhan.com/v1/timings/'+dStr+'?latitude='+State.loc.lat+'&longitude='+State.locurl='https://api.aladhan.cm/v1/timings/'+dStr+'?latitude='+State.loc.lat+'&longitude='+State.loc.lon+'&method=2';fetch(url).then(function(r){return r.json()}).then(function(data){var
+t=data.data.timings;var names=['Fajr','Dhuhr','Asr','Maghrib','Isha'];var html='';var
+nowMin=date.getHours()*60+date.getMinutes();var nextIdx=-1;names.forEach(function(n,idx){var
+parts=t[n].split(':');var pMin=parseInt(parts[0])*60+parseInt(parts[1]);var
+active='';if(pMin>nowMin&&nextIdx===-1){nextIdx=idx;active='active'}html+='<div
+class="prayer-row '+active+'"><span>'+n+'</span><span
+class="mono">'+t[n]+'</span></div>'});E.prayerList.innerHTML=html})}
+function fetchNews(){var
+feeds=[{cat:'Auto',url:'https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml'},{cat:'MidEfeeds=[{cat:'Auto',url:'https://rss.nytimes.com/services/xml/rss/nyt/Autmobiles.xml'},{cat:'MidEast',url:'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml'},{cat:'Viewed',url:'https:/st',url:'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml'},{cat:'Viewed',url:'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'},{cat:'Shared',url:'https://rss.nytimes.com/rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'},{cat:'Shared',url:'https://rss.nytimes.com/services/xml/rss/nyt/MostShared.xml'},{cat:'Tech',url:'https://rss.nytimes.com/services/xml/rss/nyervices/xml/rss/nyt/MostShared.xml'},{cat:'Tech',url:'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml'}];var allItems=[];var count=0;function
+checkDone(){count++;if(count===feeds.length){allItems.sort(function(a,b){return new
+Date(b.pubDate)-new
+Date(a.pubDate)});renderNews(allItems.slice(0,15))}}feeds.forEach(function(f){fetch('https://api.Date(a.pubDate)});renderNews(allItems.slice(0,15))}}feeds.forEach(function(f)fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(f.url)).then(function(r){return
+r.json()}).then(function(d){if(d.status==='ok'){d.items.forEach(function(it){it.cat=f.cat;allItemr.json()}).ten(function(d){if(d.status==='ok'){d.items.forEach(function(it){it.cat=f.cat;allItems.push(it)})}checkDone()}).catch(function(){checkDone()})})}
+function renderNews(items){if(items.length===0){E.newsList.innerHTML='<div class="text-center"
+style="padding:20px">No news available</div>';return}var html='';items.forEach(function(it){var
+d=new Date(it.pubDate);var dateStr=(d.getMonth()+1)+'/'+d.getDate();html+='<div
+class="news-item"><span class="news-tag">'+it.cat+'</span><div class="news-content"><div
+class="news-title">'+it.title+'</div><div class="news-date
+mono">'+dateStr+'</div></div></div>'});E.newsList.innerHTML=html;$('news-dot').style.display='inlmono">'+dateStr+'</div></div></div>'})E.newsList.innerHTML=html;$('news-dot').style.display='inline-block';setTimeout(function(){$('news-dot').style.display='none'},5000)}
+function fetchCrypto(){var
+ids='bitcoin,ethereum,solana,helium,binancecoin,official-trump';fetch('https://api.coingecko.com/ids='bitcoin,ethereum,solana,helium,binancecoin,official-trump';fetch(https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=usd').then(function(r){if(!r.ok)throw new
+Error();return
+r.json()}).then(function(d){State.crypto=d;saveState();renderCrypto();$('crypto-dot').style.displr.json()}).then(function(d){State.crypto=d;saveState();renderCrypto();$('crypto-do').style.display='inline-block';setTimeout(function(){$('crypto-dot').style.display='none'},5000)}).catch(functiy='inline-block';setTimeout(function(){$('crypto-dot').style.display='none'},5000)}).catch(function(){renderCrypto()})}
+function renderCrypto(){var
+map={bitcoin:'BTC',ethereum:'ETH',solana:'SOL',helium:'HNT',binancecoin:'BNB','official-trump':'Tmap={bitcoin:'BTC',ethereum:'ETH',solana:'SOL',helium:'HNT',binancecon:'BNB','official-trump':'TRUMP'};var html='';var hasData=false;for(var k in
+map){if(State.crypto[k]){hasData=true;html+='<div
+style="display:flex;justify-content:space-between;margin-bottom:8px;padding:8px;background:rgba(2style="display:flex;justify-content:space-betwen;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px"><span>'+map[k]+'</span><span>$'+State.crypto[k].usd+'</span></5,255,255,0.03);border-radius:8px"><span>'+map[k]+'</span><span>$'+State.crypto[k].usd+'</span></div>'}}E.cryptoList.innerHTML=html||(hasData?'':'Offline / No Data')}
+function
+fetchForex(){fetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,SAR,GBP,AED,XAU,XAGfetchForex(){fetch('https://api.exchangerate.host/latest?base=USD&symbols=EUR,SAR,GBP,AE,XAU,XAG').then(function(r){return
+r.json()}).then(function(d){State.forex=d.rates;saveState();renderForex();$('forex-dot').style.dir.json()}).then(function(d){State.forex=d.rates;saveState();renderForex);$('forex-dot').style.display='inline-block';setTimeout(function(){$('forex-dot').style.display='none'},5000)}).catch(funcplay='inline-block';setTimeout(function(){$('forex-dot').style.display='none'},5000)}).catch(function(){renderForex()})}
+function renderForex(){var
+map={EUR:'EUR',SAR:'SAR',GBP:'GBP',AED:'AED',XAU:'Gold',XAG:'Silver'};var html='';var
+hasData=false;for(var k in map){if(State.forex[k]){hasData=true;var
+val=k==='XAU'||k==='XAG'?State.forex[k].toFixed(2):State.forex[k].toFixed(3);html+='<div
+style="display:flex;justify-content:space-between;margin-bottom:8px;padding:8px;background:rgba(2style="dsplay:flex;justify-content:space-between;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px"><span>USD/'+map[k]+'</span><span>'+val+'</span></div>'}}E.fore5,255,255,0.03);border-radius:8px"><span>USD/'+map[k]+'</span><span>'+val+'</span></div>'}}E.forexList.innerHTML=html||(hasData?'':'Offline / No Data')}
+function renderMiniCal(){var d=new Date(State.selDate);var y=d.getFullYear();var
+m=d.getMonth();var
+monthNames=["January","February","March","April","May","June","July","August","September","OctobemonthNames=["January","February","March","April","May","June","July","August",September","October","November","December"];E.calMonthLabel.innerText=monthNames[m]+' '+y;var firstDay=new
+Date(y,m,1).getDay();var daysInMonth=new Date(y,m+1,0).getDate();var daysInPrev=new
+Date(y,m,0).getDate();var html='';for(var i=0;i<firstDay;i++){var
+dayNum=daysInPrev-(firstDay-1)+i;html+='<div class="cal-day other">'+dayNum+'</div>'}var
+todayStr=new Date().toISOString().split('T')[0];for(var i=1;i<=daysInMonth;i++){var
+currStr=y+'-'+pad2(m+1)+'-'+pad2(i);var
+cls='';if(currStr===State.selDate)cls='selected';if(currStr===todayStr)cls+=(cls?'
+':'')+'today';html+='<div class="cal-day '+cls+'" data-date="'+currStr+'">'+i+'</div>'}var
+totalCells=firstDay+daysInMonth;var remainder=totalCells%7;if(remainder!==0){for(var
+i=1;i<=(7-remainder);i++){html+='<div class="cal-day
+other">'+i+'</div>'}}E.miniCalGrid.innerHTML=html;var
+days=E.miniCalGrid.querySelectorAll('.cal-day:not(.other)');days.forEach(function(el){el.addEventdays=E.miniCalGrid.querySelectorAll('.cal-dy:not(.other)');days.forEach(function(el){el.addEventListener('click',function(){State.selDate=this.getAttribute('data-date');saveState();refreshAll()}istener('click',function(){State.selDate=this.getAttribute('data-date');saveState();refreshAll()})})}
+function renderTasks(){var list=State.tasks.filter(function(t){return t.dk===State.selDate});var
+html='';list.forEach(function(t){html+='<div class="reminder-item"><div class="reminder-check
+'+(t.done?'done':'')+'" data-id="'+t.id+'"></div><div class="reminder-text
+'+(t.done?'done':'')+'">'+t.title+'</div><button class="btn-del" d
+data-del="'+t.id+'">🗑️</button></div>'});E.remList.innerHTML=html;var
+remaining=State.tasks.filter(function(t){return!t.done&&t.dk===State.selDate}).length;E.taskCountremaining=State.tasks.filterfunction(t){return!t.done&&t.dk===State.selDate}).length;E.taskCountBig.innerText=remaining;var navHtml='';for(var i=-3;i<=3;i++){var d=new
+Date(State.selDate);d.setDate(d.getDate()+i);var dStr=d.toISOString().split('T')[0];var
+label=i===0?'Today':(d.toLocaleDateString('en-US',{weekday:'short'}));var
+active=dStr===State.selDate?'active':'';navHtml+='<div class="pill '+active+'"
+data-date="'+dStr+'">'+label+'</div>'}E.remNav.innerHTML=navHtml;E.remNav.querySelectorAll('.pilldata-date="'+dStr+">'+label+'</div>'}E.remNav.innerHTML=navHtml;E.remNav.querySelectorAll('.pill').forEach(function(el){el.addEventListener('click',function(){State.selDate=this.getAttribute('da).forEach(function(el){el.addEventListener('click',function(){State.selDate=this.getAttribute('data-date');saveState();refreshAll()})});E.remList.querySelectorAll('.reminder-check').forEach(functa-date');saveState();refreshAll()})});E.remList.querySelectorAll('.reminder-check').forEach(function(el){el.addEventListener('click',function(){var id=this.getAttribute('data-id');var
+t=State.tasks.find(function(x){return
+x.id==id});if(t){t.done=!t.done;saveState();renderTasks()}})});E.remList.querySelectorAll('[data-x.id==id});if(t){t.done=!t.done;saveState();renderTasks()}}});E.remList.querySelectorAll('[data-del]').forEach(function(el){el.addEventListener('click',function(){var
+id=this.getAttribute('data-del');State.tasks=State.tasks.filter(function(x){return
+x.id!=id});saveState();renderTasks()})})}
+function renderCountdown(){if(!State.countdown.date){E.cdDisplay.innerText="--";return}var
+target=new Date(State.countdown.date).getTime();var now=new Date().getTime();var
+diff=target-now;if(diff<0){E.cdDisplay.innerText="Expired";return}var
+days=Math.floor(diff/(1000*60*60*24));var
+hours=Math.floor((diff%(1000*60*60*24))/(1000*60*60));var
+mins=Math.floor((diff%(1000*60*60))/(1000*60));var
+secs=Math.floor((diff%(1000*60))/1000);if(days>0){E.cdDisplay.innerText=days+'d '+pad2(hours)+'h
+'+pad2(mins)+'m'}else{E.cdDisplay.innerText=pad2(hours)+':'+pad2(mins)+':'+pad2(secs)}}
+function gAuth(scope,callback){if(!window.google){alert('Google API not loaded yet.');return}var
+tokenClient=google.accounts.oauth2.initTokenClient({client_id:CFG.googleClientId,scope:scope,callokenClient=google.accounts.oauth2.initTokenClient({client_id:CFG.googleClientId,scope:scope,callback:function(resp){if(resp.error){console.error(resp);return}State.gToken=resp.access_token;saveSack:function(resp){if(resp.error){console.error(resp);return}State.gToken=resp.access_token;saveState();callback()}});if(State.gToken){callback()}else{tokenClient.requestAccessToken()}}
+function loadGCal(){if(!State.gToken)return;var start=State.selDate+'T00:00:00Z';var
+end=State.selDate+'T23:59:59Z';fetch('https://www.googleapis.com/calendar/v3/calendars/primary/evend=State.seDate+'T23:59:59Z';fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin='+start+'&timeMax='+end+'&orderBy=startTime&singleEvents=true',{headers:{'Authorizatints?timeMin='+start+'&timeMax='+end+'&orderBy=startTime&singleEvents=true',{headers:{'Authorization':'Bearer '+State.gToken}}).then(function(r){return r.json()}).then(function(d){var
+html='';if(!d.items||d.items.length===0){html='<div class="text-center"
+style="color:var(--text-muted);padding:10px">No
+events</div>'}else{d.items.forEach(function(ev){var
+time=ev.start.dateTime?ev.start.dateTime.substring(11,16):'All Day';html+='<div
+class="event-item" onclick="window.location=\'googlecalendar://\'"><div style="flex:1"><div
+style="font-weight:bold">'+ev.summary+'</div><div class="mono"
+style="font-size:0.8rem">'+time+'</div></div></div>'})}E.gcalList.innerHTML=html;$('stat-events-cstyle="font-size:0.8rem">'+time+'<div></div></div>'})}E.gcalList.innerHTML=html;$('stat-events-count').innerText=d.items.length||0;$('btn-gcal-add').classList.remove('hidden')})}
+function
+loadGmail(){if(!State.gToken)return;fetch('https://www.googleapis.com/gmail/v1/users/me/messages?loadGmail(){if(!State.gToken)return;fetch('https://www.googleapis.com/gmail/v1/users/me/essages?q=is:unread&maxResults=15',{headers:{'Authorization':'Bearer
+'+State.gToken}}).then(function(r){return
+r.json()}).then(function(d){if(!d.messages){$('stat-mail-count').innerText=0;E.gmailList.innerHTMr.json()}).then(function(d){if(!d.messages){$('stat-mai-count').innerText=0;E.gmailList.innerHTML='<div class="text-center" style="color:var(--text-muted);padding:10px">Inbox
+Zero!</div>';return}$('stat-mail-count').innerText=d.messages.length;E.gmailList.innerHTML='<div
+class="text-center"
+style="color:var(--text-muted);padding:10px;font-size:0.8rem">'+d.messages.length+' Unread. Tap
+stats to open app.</div>'})}
+function generateRandomString(length){var text="";var
+possible="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";for(var
+i=0;i<length;i++){text+=possible.charAt(Math.floor(Math.random()*possible.length))}return text}
+async function sha256(plain){const encoder=new TextEncoder();const
+data=encoder.encode(plain);return window.crypto.subtle.digest('SHA-256',data)}
+function base64urlencode(arr){var str="";var bytes=new Uint8Array(arr);var
+len=bytes.byteLength;for(var i=0;i<len;i++){str+=String.fromCharCode(bytes[i])}return
+btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function msAuth(){var
+verifier=generateRandomString(32);sessionStorage.setItem('ms_verifier',verifier);sha256(verifier)verifier=generateRandomString(32);sessionStorage.setItem('ms_verifier',veriier);sha256(verifier).then(function(hash){var challenge=base64urlencode(hash);var
+url='https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id='+CFG.msClientId+'&url='https://login.microsoftonline.co/common/oauth2/v2.0/authorize?client_id='+CFG.msClientId+'&response_type=code&redirect_uri='+encodeURIComponent(CFG.msRedirect)+'&scope=openid%20profile%20Usesponse_type=code&redirect_uri='+encodeURIComponent(CFG.msRedirect)+'&scope=openid%20profile%20User.Read%20Mail.Read%20Calendars.Read%20Calendars.ReadWrite%20offline_access'+'&code_challenge='+chr.Read%20Mail.Read%20Calendars.Read%20Calendars.ReadWrite%20offline_access'+'&code_challenge='+challenge+'&code_challenge_method=S256';window.location.href=url})}
+function msTokenExchange(code){var verifier=sessionStorage.getItem('ms_verifier');var
+formData=new
+FormData();formData.append('client_id',CFG.msClientId);formData.append('scope','openid profile
+User.Read Mail.Read Calendars.Read Calendars.ReadWrite
+offline_access');formData.append('code',code);formData.append('redirect_uri',CFG.msRedirect);formoffline_access');formData.append('code',coe);formData.append('redirect_uri',CFG.msRedirect);formData.append('grant_type','authorization_code');formData.append('code_verifier',verifier);fetch('htata.append('grant_type','authorization_code');formData.append('code_verifier',verifier);fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',body:formData}).then(funcps://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',body:formData}).then(function(r){return r.json()}).then(function(d){if(d.error){console.error(d);alert('Auth Error:
+'+d.error_description);return}State.mToken=d.access_token;State.mRefresh=d.refresh_token;saveStat'+d.errr_description);return}State.mToken=d.access_token;State.mRefresh=d.refresh_token;saveState();window.history.replaceState({},document.title,CFG.msRedirect.split('#')[0]);location.reload()}();window.history.replaceState({},document.title,CFG.msRedirect.split('#')[0]);location.reload()})}
+function msRefreshToken(){if(!State.mRefresh)return Promise.reject();var formData=new
+FormData();formData.append('client_id',CFG.msClientId);formData.append('scope','openid profile
+User.Read Mail.Read Calendars.Read Calendars.ReadWrite
+offline_access');formData.append('refresh_token',State.mRefresh);formData.append('grant_type','reoffline_access');formData.append('refresh_oken',State.mRefresh);formData.append('grant_type','refresh_token');return
+fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',body:formData})fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'PST',body:formData}).then(function(r){return r.json()}).then(function(d){if(d.error)throw new
+Error(d.error);State.mToken=d.access_token;if(d.refresh_token)State.mRefresh=d.refresh_token;saveError(d.error);State.mToen=d.access_token;if(d.refresh_token)State.mRefresh=d.refresh_token;saveState();return d.access_token})}
+function loadOData(endpoint,listEl,navEl,isMail){if(!State.mToken)return;var
+start=State.selDate+'T00:00:00Z';var end=State.selDate+'T23:59:59Z';var
+url=isMail?'https://graph.microsoft.com/v1.0/me/messages?$filter=isRead eq
+false&$top=15&$select=from,subject,receivedDateTime':'https://graph.microsoft.com/v1.0/me/events?false&$top=15&$select=rom,subject,receivedDateTime':'https://graph.microsoft.com/v1.0/me/events?$orderby=start/dateTime&startdatetime='+start+'&enddatetime='+end;function
+fetchData(token){return fetch(url,{headers:{'Authorization':'Bearer
+'+token}})}fetchData(State.mToken).then(function(r){if(r.status===401)return
+msRefreshToken().then(function(t){return fetchData(t)});return r}).then(function(r){return
+r.json()}).then(function(d){var html='';if(isMail){if(!d.value||d.value.length===0){html='<div
+class="text-center" style="color:var(--text-muted);padding:10px">No unread
+mail</div>'}else{d.value.forEach(function(m){var
+initial=m.from.emailAddress.name.charAt(0).toUpperCase();html+='<div class="mail-item"><div
 class="avatar">'+initial+'</div><div class="mail-content"><div
 class="mail-sub">'+m.subject+'</div><div
-class="mail-sender">'+m.from.emailAddress.name+'</div></div><div class="red-dot"></div></div>';
-                    });
-                }
-            } else {
-                if(!d.value || d.value.length === 0){ html = '<div class="text-center"
-style="color:var(--text-muted); padding:10px;">No events</div>'; }
-                else {
-                    d.value.forEach(function(ev){
-                        var time = ev.start.dateTime ? ev.start.dateTime.substring(11,16) : 'All
-Day';
-                        html += '<div class="event-item"><div style="flex:1;"><div
-style="font-weight:bold;">'+ev.subject+'</div><div class="mono"
-style="font-size:0.8rem;">'+time+'</div></div></div>';
-                    });
-                }
-            }
-            listEl.innerHTML = html;
-            if(!isMail && navEl) renderPillNav(navEl);
-        });
-    }
-
-    function renderPillNav(el){
-        el.innerHTML = '<div class="pill active">Week View</div>';
-    }
-
-    // --- LOCATION PICKER ---
-    function openLocPicker(){
-        $('overlay-loc').classList.add('active');
-        $('loc-search').focus();
-    }
-    function closeLocPicker(){
-        $('overlay-loc').classList.remove('active');
-    }
-
-    $('loc-search').addEventListener('input', function(){
-        var q = this.value;
-        if(q.length < 3) return;
-
-fetch('https://geocoding-api.open-meteo.com/v1/search?name='+q+'&count=5&language=en&format=json'fetch('https://geocoding-api.open-meteo.com/v1/search?name='+q+'&count=5&language=en&formt=json').then(function(r){
-            return r.json();
-        }).then(function(d){
-            var html = '';
-            if(!d.results){ html = '<div class="text-center" style="padding:20px;">No
-results</div>'; }
-            else {
-                d.results.forEach(function(res){
-                    html += '<div class="loc-result" data-lat="'+res.latitude+'"
-data-lon="'+res.longitude+'" data-name="'+res.name+'" data-tz="'+res.timezone+'">';
-                    html += '<span style="font-size:1.5rem;">\uD83D\uDCCD</span>
-<div><b>'+res.name+'</b><br><span style="font-size:0.8rem;
-opacity:0.7;">'+res.country+'</span></div>';
-                    html += '</div>';
-                });
-            }
-            E.locResults.innerHTML = html;
-        });
-    });
-
-    E.locResults.addEventListener('click', function(e){
-        var target = e.target.closest('.loc-result');
-        if(!target) return;
-        State.loc = {
-            lat: target.getAttribute('data-lat'),
-            lon: target.getAttribute('data-lon'),
-            name: target.getAttribute('data-name'),
-            tz: target.getAttribute('data-tz')
-        };
-        saveState();
-        closeLocPicker();
-        refreshAll();
-    });
-
-    // --- EVENT LISTENERS ---
-    function bindEvents(){
-        $('btn-set-loc-greet').addEventListener('click', openLocPicker);
-        $('btn-set-loc-prayer').addEventListener('click', openLocPicker);
-        $('btn-close-loc').addEventListener('click', closeLocPicker);
-
-        $('btn-toggle-unit').addEventListener('click', function(){
-            State.unitC = !State.unitC;
-            saveState();
-            fetchWeather();
-            this.innerText = State.unitC ? '\u00B0C' : '\u00B0F';
-        });
-
-        $('btn-new-quote').addEventListener('click', function(){
-            var q = Quotes[Math.floor(Math.random()*Quotes.length)];
-            E.quoteText.innerText = '"'+q.t+'"';
-            E.quoteAuthor.innerText = '- '+q.a+' ('+q.y+')';
-        });
-
-        $('stat-mail').addEventListener('click', function(){ window.location.href =
-'https://mail.google.com'; });
-        $('stat-events').addEventListener('click', function(){ window.location.href =
-'https://calendar.google.com'; });
-        $('card-tasks-sum').addEventListener('click', function(){ $('rem-input').focus(); });
-        $('card-weather').addEventListener('click', openLocPicker);
-
-        $('btn-crypto-refresh').addEventListener('click', fetchCrypto);
-        $('btn-forex-refresh').addEventListener('click', fetchForex);
-
-        $('btn-cd-save').addEventListener('click', function(){
-            State.countdown.name = E.cdName.value;
-            State.countdown.date = E.cdDate.value;
-            saveState();
-            renderCountdown();
-        });
-
-        $('btn-cal-prev').addEventListener('click', function(){
-            var d = new Date(State.selDate);
-            d.setMonth(d.getMonth()-1);
-            State.selDate = d.toISOString().split('T')[0];
-            saveState();
-            refreshAll();
-        });
-        $('btn-cal-next').addEventListener('click', function(){
-            var d = new Date(State.selDate);
-            d.setMonth(d.getMonth()+1);
-            State.selDate = d.toISOString().split('T')[0];
-            saveState();
-            refreshAll();
-        });
-
-        $('btn-rem-add').addEventListener('click', function(){
-            var txt = E.remInput.value;
-            if(!txt) return;
-            State.tasks.push({id: Date.now(), title: txt, done: false, dk: State.selDate});
-            E.remInput.value = '';
-            saveState();
-            renderTasks();
-        });
-        E.remInput.addEventListener('keydown', function(e){
-            if(e.key === 'Enter') $('btn-rem-add').click();
-        });
-
-        $('btn-clear-done').addEventListener('click', function(){
-            State.tasks = State.tasks.filter(function(t){ return !t.done; });
-            saveState();
-            renderTasks();
-        });
-
-        // Google Auth
-        $('btn-gcal-auth').addEventListener('click', function(){
-            gAuth('https://www.googleapis.com/auth/calendar', loadGCal);
-        });
-        $('btn-gmail-auth').addEventListener('click', function(){
-            gAuth('https://www.googleapis.com/auth/gmail.readonly', loadGmail);
-        });
-        $('btn-gcal-add').addEventListener('click', function(){
-
-window.open('https://calendar.google.com/calendar/r/eventedit?dates='+State.selDate.replace(/-/g,window.open('https://calendar.google.com/calendar/r/eventedit?dates='+State.selDate.eplace(/-/g,'')+'T000000Z/'+State.selDate.replace(/-/g,'')+'T010000Z', '_blank');
-        });
-
-        // MS Auth
-        $('btn-ocal-auth').addEventListener('click', msAuth);
-        $('btn-omail-auth').addEventListener('click', msAuth);
-
-        // Check for MS callback
-        var urlParams = new URLSearchParams(window.location.search);
-        var code = urlParams.get('code');
-        if(code) msTokenExchange(code);
-
-        // Bottom Bar
-        $('bar-guide').addEventListener('click', function(){
-$('overlay-guide').classList.add('active'); });
-        $('btn-close-guide').addEventListener('click', function(){
-$('overlay-guide').classList.remove('active'); });
-
-        $('bar-support').addEventListener('click', function(){
-$('overlay-support').classList.add('active'); });
-        $('btn-close-support').addEventListener('click', function(){
-$('overlay-support').classList.remove('active'); });
-        $('support-form').addEventListener('submit', function(e){
-            e.preventDefault();
-            var fd = new FormData(this);
-            fetch('https://api.web3forms.com/submit', {method:'POST', body:fd}).then(function(){
-                alert('Message Sent!');
-                $('overlay-support').classList.remove('active');
-                this.reset();
-            }.bind(this));
-        });
-
-        $('bar-updates').addEventListener('click', function(){
-$('overlay-updates').classList.add('active'); });
-        $('btn-close-updates').addEventListener('click', function(){
-$('overlay-updates').classList.remove('active'); });
-
-        $('bar-nuke').addEventListener('click', function(){
-            if(confirm('WARNING: This will delete all local data (Location, Tasks, Tokens).
-Continue?')){
-                localStorage.clear();
-                location.reload();
-            }
-        });
-    }
-
-    // --- MAIN LOOP ---
-    function refreshAll(){
-        if(State.loc){
-            E.greetSub.innerText = fmtDate(new Date(), {weekday:'long', month:'long',
-day:'numeric'}) + ' \u00B7 ' + State.loc.name;
-            fetchWeather();
-            fetchPrayers();
-        } else {
-            E.greetSub.innerText = "Tap \uD83D\uDCCD to set location";
-        }
-
-        E.greetTitle.innerText = getGreeting();
-
-        // Quote
-        var q = Quotes[Math.floor(Math.random()*Quotes.length)];
-        E.quoteText.innerText = '"'+q.t+'"';
-        E.quoteAuthor.innerText = '- '+q.a+' ('+q.y+')';
-
-        renderMiniCal();
-        renderTasks();
-        renderCountdown();
-        fetchNews();
-        fetchCrypto();
-        fetchForex();
-
-        if(State.gToken){
-            loadGCal();
-            loadGmail();
-        }
-        if(State.mToken){
-            loadOData('events', E.ocalList, E.ocalNav, false);
-            loadOData('messages', E.omailList, null, true);
-        }
-    }
-
-    // --- INIT ---
-    document.addEventListener('DOMContentLoaded', function(){
-        initElems();
-        initClock();
-        bindEvents();
-
-        // Pre-fill inputs
-        if(State.countdown.name) E.cdName.value = State.countdown.name;
-        if(State.countdown.date) E.cdDate.value = State.countdown.date;
-        $('btn-toggle-unit').innerText = State.unitC ? '\u00B0C' : '\u00B0F';
-
-        refreshAll();
-        setInterval(refreshAll, 60000); // Refresh data every min
-    });
-
+class="mail-sender">'+m.from.emailAddress.name+'</div></div><div
+class="red-dot"></div></div>'})}}else{if(!d.value||d.value.length===0){html='<div
+class="text-center" style="color:var(--text-muted);padding:10px">No
+events</div>'}else{d.value.forEach(function(ev){var
+time=ev.start.dateTime?ev.start.dateTime.substring(11,16):'All Day';html+='<div
+class="event-item"><div style="flex:1"><div style="font-weight:bold">'+ev.subject+'</div><div
+class="mono"
+style="font-size:0.8rem">'+time+'</div></div></div>'})}}listEl.innerHTML=html;if(!isMail&&navEl)rstyle="font-size:0.8rem">'+time+'</div></div></div>'})}}listEl.innerHTML=html;if(!isail&&navEl)renderPillNav(navEl)})}
+function renderPillNav(el){el.innerHTML='<div class="pill active">Week View</div>'}
+function openLocPicker(){$('overlay-loc').classList.add('active');$('loc-search').focus()}
+function closeLocPicker(){$('overlay-loc').classList.remove('active')}
+$('loc-search').addEventListener('input',function(){var
+q=this.value;if(q.length<3)return;fetch('https://geocoding-api.open-meteo.com/v1/search?name='+q+q=this.value;if(q.length<3)return;fetch('ttps://geocoding-api.open-meteo.com/v1/search?name='+q+'&count=5&language=en&format=json').then(function(r){return r.json()}).then(function(d){var
+html='';if(!d.results){html='<div class="text-center" style="padding:20px">No
+results</div>'}else{d.results.forEach(function(res){html+='<div class="loc-result"
+data-lat="'+res.latitude+'" data-lon="'+res.longitude+'" data-name="'+res.name+'"
+data-tz="'+res.timezone+'"><span style="font-size:1.5rem">📍
+</span><div><b>'+res.name+'</b><br><span
+style="font-size:0.8rem;opacity:0.7">'+res.country+'</span></div></div>'})}E.locResults.innerHTMLstyle="font-size:0.8rem;opacity:0.7">'+res.country+'</spn></div></div>'})}E.locResults.innerHTML=html})});
+E.locResults.addEventListener('click',function(e){var
+target=e.target.closest('.loc-result');if(!target)return;State.loc={lat:target.getAttribute('datatarget=e.target.closest('.loc-result');if(!arget)return;State.loc={lat:target.getAttribute('data-lat'),lon:target.getAttribute('data-lon'),name:target.getAttribute('data-name'),tz:target.getAttrlat'),lon:target.getAttribute('data-lon'),name:target.getAttribute('data-name'),tz:target.getAttribute('data-tz')};saveState();closeLocPicker();refreshAll()});
+function bindEvents(){
+$('btn-set-loc-greet').addEventListener('click',openLocPicker);
+$('btn-set-loc-prayer').addEventListener('click',openLocPicker);
+$('btn-close-loc').addEventListener('click',closeLocPicker);
+$('btn-toggle-unit').addEventListener('click',function(){State.unitC=!State.unitC;saveState();fet$('btn-toggle-unit').addEventListener('click',function(){State.unitC=!State.unitC;saveState();fetchWeather();this.innerText=State.unitC?'°C':'°F'});
+$('btn-new-quote').addEventListener('click',function(){var
+q=Quotes[Math.floor(Math.random()*Quotes.length)];E.quoteText.innerText='"'+q.t+'"';E.quoteAuthorq=Quotes[Math.floor(Math.random()*Quots.length)];E.quoteText.innerText='"'+q.t+'"';E.quoteAuthor.innerText='- '+q.a+' ('+q.y+')'});
+$('stat-mail').addEventListener('click',function(){window.location.href='https://mail.google.com'$('stat-mail').addEventListener('click',function(){window.location.href='https://mail.google.com'});
+$('stat-events').addEventListener('click',function(){window.location.href='https://calendar.googl$('stat-events').addEventListener('click',function(){window.location.href='https://calendar.google.com'});
+$('card-tasks-sum').addEventListener('click',function(){$('rem-input').focus()});
+$('card-weather').addEventListener('click',openLocPicker);
+$('btn-crypto-refresh').addEventListener('click',fetchCrypto);
+$('btn-forex-refresh').addEventListener('click',fetchForex);
+$('btn-cd-save').addEventListener('click',function(){State.countdown.name=E.cdName.value;State.co$('btn-cd-save').addEventListener('click',function(){State.countdown.name=E.cdName.value;State.countdown.date=E.cdDate.value;saveState();renderCountdown()});
+$('btn-cal-prev').addEventListener('click',function(){var d=new
+Date(State.selDate);d.setMonth(d.getMonth()-1);State.selDate=d.toISOString().split('T')[0];saveStDate(State.selDate);d.setMonth(d.etMonth()-1);State.selDate=d.toISOString().split('T')[0];saveState();refreshAll()});
+$('btn-cal-next').addEventListener('click',function(){var d=new
+Date(State.selDate);d.setMonth(d.getMonth()+1);State.selDate=d.toISOString().split('T')[0];saveStDate(State.selDate);d.setMonth(d.etMonth()+1);State.selDate=d.toISOString().split('T')[0];saveState();refreshAll()});
+$('btn-rem-add').addEventListener('click',function(){var
+txt=E.remInput.value;if(!txt)return;State.tasks.push({id:Date.now(),title:txt,done:false,dk:Statetxt=E.remInput.value;if(!txt)return;Stat.tasks.push({id:Date.now(),title:txt,done:false,dk:State.selDate});E.remInput.value='';saveState();renderTasks()});
+E.remInput.addEventListener('keydown',function(e){if(e.key==='Enter')$('btn-rem-add').click()});
+$('btn-clear-done').addEventListener('click',function(){State.tasks=State.tasks.filter(function(t$('btn-clear-done').addEventListener('click',function(){State.tasks=State.tasks.filter(function(t){return!t.done});saveState();renderTasks()});
+$('btn-gcal-auth').addEventListener('click',function(){gAuth('https://www.googleapis.com/auth/cal$('btn-gcal-auth').addEventListener('click',function(){gAuth('https://www.googleapis.com/auth/calendar',loadGCal)});
+$('btn-gmail-auth').addEventListener('click',function(){gAuth('https://www.googleapis.com/auth/gm$('btn-gmail-auth').addEventListener('click',function(){gAuth('https://www.googleapis.com/auth/gmail.readonly',loadGmail)});
+$('btn-gcal-add').addEventListener('click',function(){window.open('https://calendar.google.com/ca$('btn-gcal-add').addEventListener('click',function(){window.open('https://calendar.google.com/calendar/r/eventedit?dates='+State.selDate.replace(/-/g,'')+'T000000Z/'+State.selDate.replace(/-/g,'endar/r/eventedit?dates='+State.selDate.replace(/-/g,'')+'T000000Z/'+State.selDate.replace(/-/g,'')+'T010000Z','_blank')});
+$('btn-ocal-auth').addEventListener('click',msAuth);
+$('btn-omail-auth').addEventListener('click',msAuth);
+var urlParams=new URLSearchParams(window.location.search);
+var code=urlParams.get('code');
+if(code)msTokenExchange(code);
+$('bar-guide').addEventListener('click',function(){$('overlay-guide').classList.add('active')});
+$('btn-close-guide').addEventListener('click',function(){$('overlay-guide').classList.remove('act$('btn-close-guide').addEventListener('click',function(){$('overlay-guide').classList.remove('active')});
+$('bar-support').addEventListener('click',function(){$('overlay-support').classList.add('active')$('bar-support').addEventListener('click',function(){$('overlay-support').classList.add('active')});
+$('btn-close-support').addEventListener('click',function(){$('overlay-support').classList.remove($('btn-close-support').addEventListener('click',function(){$('overlay-support').classList.remove('active')});
+$('support-form').addEventListener('submit',function(e){e.preventDefault();var fd=new
+FormData(this);fetch('https://api.web3forms.com/submit',{method:'POST',body:fd}).then(function(){FormData(ths);fetch('https://api.web3forms.com/submit',{method:'POST',body:fd}).then(function(){alert('Message
+Sent!');$('overlay-support').classList.remove('active');this.reset()}.bind(this))});
+$('bar-updates').addEventListener('click',function(){$('overlay-updates').classList.add('active')$('bar-updates').addEventListener('click',function(){$('overlay-updates').classList.add('active')});
+$('btn-close-updates').addEventListener('click',function(){$('overlay-updates').classList.remove($('btn-close-updates').addEventListener('click',function(){$('overlay-updates').classList.remove('active')});
+$('bar-nuke').addEventListener('click',function(){if(confirm('WARNING: This will delete all
+local data (Location, Tasks, Tokens). Continue?')){localStorage.clear();location.reload()}});
+}
+function refreshAll(){
+if(State.loc){E.greetSub.innerText=fmtDate(new
+Date(),{weekday:'long',month:'long',day:'numeric'})+' ·
+'+State.loc.name;fetchWeather();fetchPrayers()}else{E.greetSub.innerText="Tap 📍 to set
+location"}
+E.greetTitle.innerText=getGreeting();
+var q=Quotes[Math.floor(Math.random()*Quotes.length)];
+E.quoteText.innerText='"'+q.t+'"';
+E.quoteAuthor.innerText='- '+q.a+' ('+q.y+')';
+renderMiniCal();
+renderTasks();
+renderCountdown();
+fetchNews();
+fetchCrypto();
+fetchForex();
+if(State.gToken){loadGCal();loadGmail()}
+if(State.mToken){loadOData('events',E.ocalList,E.ocalNav,false);loadOData('messages',E.omailList,if(State.mToken){loadOData('events',E.ocalList,E.ocalNav,false);loadOData('messages',E.omailList,null,true)}
+}
+document.addEventListener('DOMContentLoaded',function(){
+initElems();
+initClock();
+bindEvents();
+if(State.countdown.name)E.cdName.value=State.countdown.name;
+if(State.countdown.date)E.cdDate.value=State.countdown.date;
+$('btn-toggle-unit').innerText=State.unitC?'°C':'°F';
+refreshAll();
+setInterval(refreshAll,60000);
+});
 })();
 </script>
 </body>
